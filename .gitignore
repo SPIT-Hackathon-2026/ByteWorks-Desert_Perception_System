@@ -15,6 +15,10 @@ offroad_training_pipeline/checkpoints/*.pt
 offroad_training_pipeline/train_stats/
 offroad_training_pipeline/predictions/
 
+umixformer_pipeline/checkpoints/
+umixformer_pipeline/predictions/
+offroad_training_pipeline/checkpoints/
+
 # IDE / OS
 .vscode/
 .idea/
