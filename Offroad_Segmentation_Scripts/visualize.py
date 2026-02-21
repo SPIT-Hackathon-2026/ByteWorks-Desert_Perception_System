@@ -3,8 +3,13 @@ import numpy as np
 import os
 from pathlib import Path
 
+# Resolve paths from repo root
+script_dir = os.path.dirname(os.path.abspath(__file__))
+repo_root = os.path.abspath(os.path.join(script_dir, '..'))
+dataset_root = os.path.join(repo_root, 'dataset')
+
 # Input folder containing image files
-input_folder = " " 
+input_folder = os.path.join(dataset_root, "Offroad_Segmentation_Training_Dataset")
 # Output folder for colorized images
 output_folder = os.path.join(input_folder, "colorized")
 

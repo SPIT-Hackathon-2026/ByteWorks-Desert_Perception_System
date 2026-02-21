@@ -1,3 +1,42 @@
+# Environments
 .venv/
-AIML-PS (1).pdf
+venv/
+env/
+ENV/
+
+# Dataset (too large to commit)
 dataset/
+
+# Model checkpoints (large files)
+offroad_training_pipeline/checkpoints/*.pth
+offroad_training_pipeline/checkpoints/*.pt
+
+# Training outputs
+offroad_training_pipeline/train_stats/
+offroad_training_pipeline/predictions/
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+
+# Documentation files
+AIML-PS (1).pdf

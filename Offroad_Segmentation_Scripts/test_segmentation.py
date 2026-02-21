@@ -296,15 +296,20 @@ def save_metrics_summary(results, output_dir):
 # ============================================================================
 
 def main():
-    # Get script directory for default paths
+    # Get repo root for default paths
     script_dir = os.path.dirname(os.path.abspath(__file__))
+    repo_root = os.path.abspath(os.path.join(script_dir, '..'))
+    dataset_root = os.path.join(repo_root, 'dataset')
     
     parser = argparse.ArgumentParser(description='Segmentation prediction/inference script')
-    parser.add_argument('--model_path', type=str, default=os.path.join(script_dir, 'segmentation_head.pth'),
+    parser.add_argument('--model_path', type=str, 
+                        default=os.path.join(repo_root, 'offroad_training_pipeline', 'checkpoints', 'convnext_head.pth'),
                         help='Path to trained model weights')
-    parser.add_argument('--data_dir', type=str, default=os.path.join(script_dir, '..', 'Offroad_Segmentation_testImages'),
+    parser.add_argument('--data_dir', type=str, 
+                        default=os.path.join(dataset_root, 'Offroad_Segmentation_testImages'),
                         help='Path to validation dataset')
-    parser.add_argument('--output_dir', type=str, default='./predictions',
+    parser.add_argument('--output_dir', type=str, 
+                        default=os.path.join(repo_root, 'offroad_training_pipeline', 'predictions'),
                         help='Directory to save prediction visualizations')
     parser.add_argument('--batch_size', type=int, default=2,
                         help='Batch size for validation')

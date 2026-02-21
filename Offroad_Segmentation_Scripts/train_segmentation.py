@@ -404,9 +404,11 @@ def main():
     lr = 1e-4
     n_epochs = 10
 
-    # Output directory (relative to script location)
+    # Resolve paths from repo root (not script location)
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    output_dir = os.path.join(script_dir, 'train_stats')
+    repo_root = os.path.abspath(os.path.join(script_dir, '..'))
+    
+    output_dir = os.path.join(repo_root, 'offroad_training_pipeline', 'train_stats')
     os.makedirs(output_dir, exist_ok=True)
 
     # Transforms
@@ -421,9 +423,10 @@ def main():
         transforms.ToTensor(),
     ])
 
-    # Dataset paths (relative to script location)
-    data_dir = os.path.join(script_dir, '..', 'Offroad_Segmentation_Training_Dataset', 'train')
-    val_dir = os.path.join(script_dir, '..', 'Offroad_Segmentation_Training_Dataset', 'val')
+    # Dataset paths from repo root
+    dataset_root = os.path.join(repo_root, 'dataset')
+    data_dir = os.path.join(dataset_root, 'Offroad_Segmentation_Training_Dataset', 'train')
+    val_dir = os.path.join(dataset_root, 'Offroad_Segmentation_Training_Dataset', 'val')
 
     # Create datasets
     trainset = MaskDataset(data_dir=data_dir, transform=transform, mask_transform=mask_transform)
@@ -570,8 +573,11 @@ def main():
     save_training_plots(history, output_dir)
     save_history_to_file(history, output_dir)
 
-    # Save model (in scripts directory)
-    model_path = os.path.join(script_dir, "segmentation_head.pth")
+    # Save model (in offroad_training_pipeline checkpoints directory)
+    repo_root = os.path.abspath(os.path.join(script_dir, '..'))
+    checkpoint_dir = os.path.join(repo_root, 'offroad_training_pipeline', 'checkpoints')
+    os.makedirs(checkpoint_dir, exist_ok=True)
+    model_path = os.path.join(checkpoint_dir, "segmentation_head.pth")
     torch.save(classifier.state_dict(), model_path)
     print(f"Saved model to '{model_path}'")
 

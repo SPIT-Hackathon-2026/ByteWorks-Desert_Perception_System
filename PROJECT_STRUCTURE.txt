@@ -1,0 +1,151 @@
+SPIT_Hackathon/  (Repository Root)
+│
+├── dataset/  (Data directories - too large for git)
+│   ├── Offroad_Segmentation_Training_Dataset/
+│   │   ├── train/
+│   │   │   ├── Color_Images/           [~N training color images]
+│   │   │   └── Segmentation/           [~N training masks]
+│   │   └── val/
+│   │       ├── Color_Images/           [~M validation color images]
+│   │       └── Segmentation/           [~M validation masks]
+│   └── Offroad_Segmentation_testImages/
+│       ├── Color_Images/               [1002 test color images]
+│       └── Segmentation/               [1002 test masks]
+│
+├── offroad_training_pipeline/  ← Main refactored package
+│   ├── __init__.py                      [Package init]
+│   ├── config.py                        [Central config: paths, hyperparams, classes]
+│   ├── dataset.py                       [Data loading: MaskDataset, transforms]
+│   ├── utils.py                         [Utilities: image/mask I/O]
+│   ├── metrics.py                       [Metrics: IoU, Dice, Pixel Accuracy]
+│   ├── visualization.py                 [Plotting & visualization]
+│   ├── train.py                         [Training script (CLI)]
+│   ├── test.py                          [Inference script (CLI)]
+│   ├── visualize.py                     [Mask colorisation script]
+│   ├── README.md                        [Full documentation]
+│   ├── DESIGN.md                        [Architecture & design patterns]
+│   │
+│   ├── models/  ← Extensible model registry
+│   │   ├── __init__.py                  [Import & register all heads]
+│   │   ├── registry.py                  [@register_model decorator, build_model()]
+│   │   ├── backbone.py                  [DINOv2 loader: load_backbone()]
+│   │   ├── convnext_head.py             [Default ConvNeXt head]
+│   │   └── linear_head.py               [Baseline 1×1 conv head]
+│   │
+│   ├── checkpoints/  ← Model weights storage
+│   │   ├── convnext_head.pth            [After training]
+│   │   └── linear_head.pth              [After training]
+│   │
+│   ├── train_stats/  ← Training outputs
+│   │   ├── evaluation_metrics.txt       [Per-epoch metrics]
+│   │   ├── training_curves.png          [Loss & accuracy plots]
+│   │   ├── iou_curves.png               [IoU trends]
+│   │   ├── dice_curves.png              [Dice trends]
+│   │   └── all_metrics_curves.png       [Combined 2×2 plot]
+│   │
+│   └── predictions/  ← Inference outputs
+│       ├── masks/                       [Raw class-ID masks]
+│       ├── masks_color/                 [Coloured RGB masks]
+│       ├── comparisons/                 [3-panel comparison images]
+│       ├── evaluation_metrics.txt       [Per-class IoU]
+│       └── per_class_metrics.png        [Bar chart]
+│
+├── Offroad_Segmentation_Scripts/  ← Original standalone scripts (updated)
+│   ├── train_segmentation.py            [Original training script - paths updated]
+│   ├── test_segmentation.py             [Original inference script - paths updated]
+│   ├── visualize.py                     [Original colorisation - paths updated]
+│   ├── train_stats/                     [Legacy output directory]
+│   └── ENV_SETUP/                       [Environment setup scripts]
+│
+├── main.py                              [Convenience CLI entry-point]
+├── pyproject.toml                       [Project metadata]
+├── README.md                            [Project overview]
+├── QUICKSTART.md                        [Quick reference guide]
+├── REFACTORING.md                       [Refactoring summary]
+├── STATUS.md                            [Project status]
+├── .gitignore                           [Git ignore rules - updated]
+└── .venv/                               [Python virtual environment]
+
+═══════════════════════════════════════════════════════════════════════════════
+
+KEY FEATURES:
+
+1. CENTRALISED CONFIGURATION
+   └─ All settings in: offroad_training_pipeline/config.py
+   └─ Paths resolve from repo root
+   └─ Easy to modify defaults
+
+2. MODULAR DESIGN
+   ├─ Each concern has its own file
+   ├─ Components are reusable
+   ├─ Easy to test individually
+   └─ No code duplication
+
+3. EXTENSIBLE MODEL SYSTEM
+   ├─ Model registry: models/registry.py
+   ├─ Add models by decorating: @register_model("name")
+   ├─ Currently: ConvNeXt + Linear heads
+   └─ Easy to add more!
+
+4. COMPREHENSIVE DOCUMENTATION
+   ├─ README.md – Full guide
+   ├─ DESIGN.md – Architecture patterns
+   ├─ QUICKSTART.md – Common commands
+   └─ REFACTORING.md – What changed & why
+
+5. FLEXIBLE CLI
+   ├─ python main.py train --model convnext_head --epochs 10
+   ├─ python main.py test --model linear_head
+   └─ All commands configurable via flags
+
+═══════════════════════════════════════════════════════════════════════════════
+
+QUICK START:
+
+1. Activate environment:
+   source .venv/bin/activate
+
+2. Train:
+   python main.py train --epochs 20
+
+3. Test:
+   python main.py test
+
+4. View results:
+   cat offroad_training_pipeline/train_stats/evaluation_metrics.txt
+
+═══════════════════════════════════════════════════════════════════════════════
+
+FILES INCLUDED:
+
+Core Pipeline (15 files):
+  ✓ config.py, dataset.py, utils.py, metrics.py, visualization.py
+  ✓ train.py, test.py, visualize.py
+  ✓ models/registry.py, models/backbone.py
+  ✓ models/convnext_head.py, models/linear_head.py
+  ✓ __init__.py files for packages
+
+Documentation (4 files):
+  ✓ offroad_training_pipeline/README.md
+  ✓ offroad_training_pipeline/DESIGN.md
+  ✓ QUICKSTART.md
+  ✓ REFACTORING.md
+  ✓ STATUS.md
+
+Entry Points:
+  ✓ main.py (CLI wrapper)
+  ✓ Offroad_Segmentation_Scripts/* (Original scripts - paths updated)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+VERIFICATION STATUS:
+
+✅ All imports successful
+✅ All paths verified & exist
+✅ Model registry populated (2 models)
+✅ Dataset loads correctly (1002 images)
+✅ Configuration validated
+✅ GPU/CUDA available
+✅ Ready to use!
+
+═══════════════════════════════════════════════════════════════════════════════
