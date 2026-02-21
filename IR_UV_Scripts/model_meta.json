@@ -1,0 +1,19 @@
+{
+  "camouf_features": [
+    "transition_rate",
+    "ir_ratio",
+    "variance",
+    "asymmetry"
+  ],
+  "terrain_features": [
+    "ir_ratio",
+    "clearance_norm",
+    "variance",
+    "combined_risk"
+  ],
+  "camouf_cv_f1": 1.0,
+  "terrain_cv_f1": 0.9998,
+  "n_estimators": 120,
+  "max_depth": 8,
+  "dataset_size": 4000
+}
