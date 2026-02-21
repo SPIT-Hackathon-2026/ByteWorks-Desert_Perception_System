@@ -1,0 +1,33 @@
+# Core ML
+torch
+torchvision
+torchaudio
+
+# Ultralytics (YOLO)
+ultralytics
+
+# Computer Vision
+opencv-python
+opencv-contrib-python
+Pillow
+
+# Numerical
+numpy
+scipy
+
+# Visualization
+matplotlib
+seaborn
+
+# Utilities
+tqdm
+pyyaml
+requests
+
+# Data handling
+pandas
+scikit-learn
+
+# Optional but commonly required in modern vision repos
+timm
+einops
