@@ -41,9 +41,9 @@ IMG_H = int(((ORIGINAL_H / 2) // PATCH_SIZE) * PATCH_SIZE)  # 266
 # Training hyper-parameters
 # ============================================================================
 BATCH_SIZE = 2
-LEARNING_RATE = 1e-3
+LEARNING_RATE = 3e-3
 WEIGHT_DECAY = 1e-2
-NUM_EPOCHS = 15
+NUM_EPOCHS = 8
 NUM_WORKERS = 0  # increase on machines with more cores
 
 # ============================================================================
@@ -75,31 +75,33 @@ VALUE_MAP = {
     10000: 9,    # Sky
 }
 
-# Step 2: original 10-class id  →  4 super-class id
+# Step 2: original 10-class id  →  5 super-class id
 #   0 = Driveable    (Dry Grass, Ground Clutter, Landscape)
 #   1 = Vegetation   (Trees, Lush Bushes, Dry Bushes, Flowers)
-#   2 = Obstacle     (Logs, Rocks)
-#   3 = Sky
+#   2 = Obstacle     (Logs, Ground Clutter items)
+#   3 = Rocks        (Rocks — separated for finer obstacle understanding)
+#   4 = Sky
 CLASS_REMAP = {
     0: 1,   # Trees       → Vegetation
     1: 1,   # Lush Bushes → Vegetation
     2: 0,   # Dry Grass   → Driveable
     3: 1,   # Dry Bushes  → Vegetation
-    4: 0,   # Ground Clutter → Driveable
+    4: 2,   # Ground Clutter → Obstacle
     5: 1,   # Flowers     → Vegetation
     6: 2,   # Logs        → Obstacle
-    7: 2,   # Rocks       → Obstacle
+    7: 3,   # Rocks       → Rocks
     8: 0,   # Landscape   → Driveable
-    9: 3,   # Sky         → Sky
+    9: 4,   # Sky         → Sky
 }
 
-NUM_CLASSES = 4
+NUM_CLASSES = 5
 
 CLASS_NAMES = [
     "Driveable",    # 0 — ground the UGV can traverse
-    "Vegetation",   # 1 — bushes, trees, flowers (not hard obstacles)
-    "Obstacle",     # 2 — logs, rocks (must avoid)
-    "Sky",          # 3 — above the horizon
+    "Vegetation",   # 1 — bushes, trees, flowers (soft obstacles)
+    "Obstacle",     # 2 — logs, clutter (hard obstacles, must avoid)
+    "Rocks",        # 3 — rocks (hard obstacle, distinct from logs)
+    "Sky",          # 4 — above the horizon
 ]
 
 # RGB colour palette for visualisation (one per super-class)
@@ -107,7 +109,8 @@ COLOR_PALETTE = np.array(
     [
         [0, 200, 0],      # Driveable  – green
         [255, 165, 0],    # Vegetation – orange
-        [220, 50, 50],    # Obstacle   – red
+        [255, 255, 0],    # Obstacle   – yellow
+        [220, 30, 30],    # Rocks      – red
         [135, 206, 235],  # Sky        – sky blue
     ],
     dtype=np.uint8,

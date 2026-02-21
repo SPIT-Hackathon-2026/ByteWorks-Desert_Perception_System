@@ -1,0 +1,239 @@
+SPIT_Hackathon on  main [!?⇡] is 📦 v0.1.0 via 🐍 v3.13.5 (SPIT_Hackathon) 
+❯ uv run python -m umixformer_pipeline.train
+============================================================
+  U-MixFormer Off-Road Segmentation Training
+============================================================
+  Device:        cuda
+  Image size:    384×384
+  Batch size:    2 (×4 accum = 8 effective)
+  LR:            6e-05 (encoder 6e-06)
+  Epochs:        20
+  AMP:           True
+  Train dir:     /home/raj_99/Projects/SPIT_Hackathon/dataset/Offroad_Segmentation_Training_Dataset/train
+  Val dir:       /home/raj_99/Projects/SPIT_Hackathon/dataset/Offroad_Segmentation_Training_Dataset/val
+============================================================
+
+/home/raj_99/Projects/SPIT_Hackathon/umixformer_pipeline/dataset.py:36: UserWarning: Argument(s) 'shift_limit, scale_limit, rotate_limit' are not valid for transform Affine
+  A.Affine(shift_limit=0.05, scale_limit=0.1,
+Train samples: 2857, Val samples: 317
+Computing class weights from training data...
+Scanning class distribution: 100%|█████████████████████| 1428/1428 [00:19<00:00, 74.73it/s]
+  Class distribution: {'Driveable': '0.2490', 'Vegetation': '0.3187', 'Obstacle': '0.0564', 'Sky': '0.3758'}
+  Class weights:      {'Driveable': '0.583', 'Vegetation': '0.456', 'Obstacle': '2.574', 'Sky': '0.387'}
+Model params: 29.2M total, 29.2M trainable
+
+Starting training...
+
+                                                                                           
+Epoch 1/20  (103.8s)
+  Train — Loss: 0.7938  mIoU: 0.2406  Dice: 0.3601  Acc: 0.4575
+  Val   — Loss: 0.6434  mIoU: 0.4802  Dice: 0.5971  Acc: 0.7323
+  Val per-class IoU: Driveable=0.2491  Vegetation=0.6406  Obstacle=0.1617  Sky=0.8694  
+  ★ New best val IoU: 0.4802
+                                                                                           
+Epoch 2/20  (94.7s)
+  Train — Loss: 0.5330  mIoU: 0.5321  Dice: 0.6568  Acc: 0.7610
+  Val   — Loss: 0.4430  mIoU: 0.6280  Dice: 0.7387  Acc: 0.8399
+  Val per-class IoU: Driveable=0.5612  Vegetation=0.7283  Obstacle=0.2596  Sky=0.9627  
+  ★ New best val IoU: 0.6280
+                                                                                           
+Epoch 3/20  (94.9s)
+  Train — Loss: 0.4246  mIoU: 0.6051  Dice: 0.7213  Acc: 0.8162
+  Val   — Loss: 0.3960  mIoU: 0.6551  Dice: 0.7634  Acc: 0.8569
+  Val per-class IoU: Driveable=0.5884  Vegetation=0.7543  Obstacle=0.3039  Sky=0.9737  
+  ★ New best val IoU: 0.6551
+                                                                                           
+Epoch 4/20  (94.9s)
+  Train — Loss: 0.3828  mIoU: 0.6345  Dice: 0.7472  Acc: 0.8372
+  Val   — Loss: 0.3684  mIoU: 0.6703  Dice: 0.7770  Acc: 0.8642
+  Val per-class IoU: Driveable=0.6110  Vegetation=0.7646  Obstacle=0.3280  Sky=0.9778  
+  ★ New best val IoU: 0.6703
+                                                                                           
+Epoch 5/20  (95.1s)
+  Train — Loss: 0.3580  mIoU: 0.6520  Dice: 0.7622  Acc: 0.8488
+  Val   — Loss: 0.3545  mIoU: 0.6765  Dice: 0.7825  Acc: 0.8671
+  Val per-class IoU: Driveable=0.6142  Vegetation=0.7721  Obstacle=0.3404  Sky=0.9794  
+  ★ New best val IoU: 0.6765
+                                                                                           
+Epoch 6/20  (95.0s)
+  Train — Loss: 0.3447  mIoU: 0.6608  Dice: 0.7698  Acc: 0.8545
+  Val   — Loss: 0.3450  mIoU: 0.6823  Dice: 0.7876  Acc: 0.8708
+  Val per-class IoU: Driveable=0.6139  Vegetation=0.7816  Obstacle=0.3533  Sky=0.9804  
+  ★ New best val IoU: 0.6823
+                                                                                           
+Epoch 7/20  (95.0s)
+  Train — Loss: 0.3324  mIoU: 0.6690  Dice: 0.7768  Acc: 0.8598
+  Val   — Loss: 0.3414  mIoU: 0.6887  Dice: 0.7929  Acc: 0.8757
+  Val per-class IoU: Driveable=0.6275  Vegetation=0.7858  Obstacle=0.3606  Sky=0.9810  
+  ★ New best val IoU: 0.6887
+                                                                                           
+Epoch 8/20  (94.8s)
+  Train — Loss: 0.3269  mIoU: 0.6748  Dice: 0.7816  Acc: 0.8636
+  Val   — Loss: 0.3352  mIoU: 0.6913  Dice: 0.7951  Acc: 0.8762
+  Val per-class IoU: Driveable=0.6359  Vegetation=0.7847  Obstacle=0.3636  Sky=0.9811  
+  ★ New best val IoU: 0.6913
+                                                                                           
+Epoch 9/20  (95.0s)
+  Train — Loss: 0.3199  mIoU: 0.6783  Dice: 0.7846  Acc: 0.8656
+  Val   — Loss: 0.3308  mIoU: 0.6920  Dice: 0.7960  Acc: 0.8760
+  Val per-class IoU: Driveable=0.6314  Vegetation=0.7866  Obstacle=0.3686  Sky=0.9814  
+  ★ New best val IoU: 0.6920
+                                                                                           
+Epoch 10/20  (94.9s)
+  Train — Loss: 0.3152  mIoU: 0.6817  Dice: 0.7876  Acc: 0.8675
+  Val   — Loss: 0.3303  mIoU: 0.6927  Dice: 0.7966  Acc: 0.8763
+  Val per-class IoU: Driveable=0.6327  Vegetation=0.7873  Obstacle=0.3694  Sky=0.9816  
+  ★ New best val IoU: 0.6927
+                                                                                           
+Epoch 11/20  (94.9s)
+  Train — Loss: 0.3121  mIoU: 0.6841  Dice: 0.7897  Acc: 0.8686
+  Val   — Loss: 0.3271  mIoU: 0.6973  Dice: 0.8005  Acc: 0.8797
+  Val per-class IoU: Driveable=0.6416  Vegetation=0.7888  Obstacle=0.3772  Sky=0.9817  
+  ★ New best val IoU: 0.6973
+                                                                                           
+Epoch 12/20  (94.9s)
+  Train — Loss: 0.3106  mIoU: 0.6847  Dice: 0.7902  Acc: 0.8690
+  Val   — Loss: 0.3265  mIoU: 0.6958  Dice: 0.7993  Acc: 0.8778
+  Val per-class IoU: Driveable=0.6334  Vegetation=0.7903  Obstacle=0.3775  Sky=0.9818  
+                                                                                           
+Epoch 13/20  (95.0s)
+  Train — Loss: 0.3063  mIoU: 0.6879  Dice: 0.7928  Acc: 0.8711
+  Val   — Loss: 0.3255  mIoU: 0.6928  Dice: 0.7969  Acc: 0.8751
+  Val per-class IoU: Driveable=0.6265  Vegetation=0.7887  Obstacle=0.3739  Sky=0.9819  
+                                                                                           
+Epoch 14/20  (94.9s)
+  Train — Loss: 0.3052  mIoU: 0.6887  Dice: 0.7935  Acc: 0.8717
+  Val   — Loss: 0.3236  mIoU: 0.6965  Dice: 0.8000  Acc: 0.8780
+  Val per-class IoU: Driveable=0.6349  Vegetation=0.7900  Obstacle=0.3790  Sky=0.9820  
+                                                                                           
+Epoch 15/20  (94.9s)
+  Train — Loss: 0.3056  mIoU: 0.6884  Dice: 0.7932  Acc: 0.8711
+  Val   — Loss: 0.3230  mIoU: 0.6984  Dice: 0.8017  Acc: 0.8792
+  Val per-class IoU: Driveable=0.6397  Vegetation=0.7900  Obstacle=0.3820  Sky=0.9819  
+  ★ New best val IoU: 0.6984
+                                                                                           
+Epoch 16/20  (94.8s)
+  Train — Loss: 0.3044  mIoU: 0.6896  Dice: 0.7944  Acc: 0.8719
+  Val   — Loss: 0.3230  mIoU: 0.6993  Dice: 0.8023  Acc: 0.8799
+  Val per-class IoU: Driveable=0.6424  Vegetation=0.7899  Obstacle=0.3826  Sky=0.9820  
+  ★ New best val IoU: 0.6993
+                                                                                           
+Epoch 17/20  (94.9s)
+  Train — Loss: 0.3017  mIoU: 0.6900  Dice: 0.7945  Acc: 0.8727
+  Val   — Loss: 0.3217  mIoU: 0.6986  Dice: 0.8018  Acc: 0.8794
+  Val per-class IoU: Driveable=0.6387  Vegetation=0.7912  Obstacle=0.3825  Sky=0.9821  
+                                                                                           
+Epoch 18/20  (94.9s)
+  Train — Loss: 0.3028  mIoU: 0.6909  Dice: 0.7953  Acc: 0.8728
+  Val   — Loss: 0.3221  mIoU: 0.6966  Dice: 0.8002  Acc: 0.8777
+  Val per-class IoU: Driveable=0.6346  Vegetation=0.7901  Obstacle=0.3798  Sky=0.9820  
+                                                                                           
+Epoch 19/20  (94.9s)
+  Train — Loss: 0.3021  mIoU: 0.6909  Dice: 0.7954  Acc: 0.8731
+  Val   — Loss: 0.3223  mIoU: 0.6979  Dice: 0.8013  Acc: 0.8788
+  Val per-class IoU: Driveable=0.6364  Vegetation=0.7911  Obstacle=0.3821  Sky=0.9821  
+                                                                                           
+Epoch 20/20  (94.9s)
+  Train — Loss: 0.3018  mIoU: 0.6910  Dice: 0.7954  Acc: 0.8729
+  Val   — Loss: 0.3216  mIoU: 0.7002  Dice: 0.8031  Acc: 0.8806
+  Val per-class IoU: Driveable=0.6438  Vegetation=0.7910  Obstacle=0.3840  Sky=0.9821  
+  ★ New best val IoU: 0.7002
+
+============================================================
+Training complete. Best Val mIoU: 0.7002
+============================================================
+History saved to /home/raj_99/Projects/SPIT_Hackathon/umixformer_pipeline/train_stats/training_history.json
+Summary saved to /home/raj_99/Projects/SPIT_Hackathon/umixformer_pipeline/train_stats/training_summary.txt
+
+
+SPIT_Hackathon on  main [!?⇡] is 📦 v0.1.0 via 🐍 v3.14.3 
+❯ uv run python -m umixformer_pipeline.evaluate --xai --compare
+Loaded model from /home/raj_99/Projects/SPIT_Hackathon/umixformer_pipeline/checkpoints/umixformer_best.pth
+  Checkpoint best val IoU: 0.7002
+Evaluating on val set: 317 images
+
+Evaluating: 100%|█████████████████████████████| 317/317 [00:52<00:00,  6.07it/s]
+
+============================================================
+  Evaluation Results — VAL set
+============================================================
+  Mean IoU:       0.7002
+  Mean Dice:      0.8031
+  Pixel Accuracy: 0.8806
+
+  Per-class IoU:
+    Driveable   : 0.6438
+    Vegetation  : 0.7910
+    Obstacle    : 0.3840
+    Sky         : 0.9821
+
+  Per-class Dice:
+    Driveable   : 0.7833
+    Vegetation  : 0.8833
+    Obstacle    : 0.5550
+    Sky         : 0.9910
+
+Metrics saved to /home/raj_99/Projects/SPIT_Hackathon/umixformer_pipeline/predictions/metrics_val.txt
+Predictions saved to /home/raj_99/Projects/SPIT_Hackathon/umixformer_pipeline/predictions
+
+Generating gradient-saliency XAI for 5 images …
+XAI:   0%|                                                          | 0/5 [00:00<?, ?img/s]/home/raj_99/Projects/SPIT_Hackathon/umixformer_pipeline/explain_shap.py:126: UserWarning: Tight layout not applied. The left and right margins cannot be made large enough to accommodate all Axes decorations.
+  plt.tight_layout()
+XAI:  20%|██████████                                        | 1/5 [00:06<00:24,  6.18s/img]/home/raj_99/Projects/SPIT_Hackathon/umixformer_pipeline/explain_shap.py:126: UserWarning: Tight layout not applied. The left and right margins cannot be made large enough to accommodate all Axes decorations.
+  plt.tight_layout()
+XAI:  40%|████████████████████                              | 2/5 [00:06<00:08,  2.82s/img]/home/raj_99/Projects/SPIT_Hackathon/umixformer_pipeline/explain_shap.py:126: UserWarning: Tight layout not applied. The left and right margins cannot be made large enough to accommodate all Axes decorations.
+  plt.tight_layout()
+XAI:  60%|██████████████████████████████                    | 3/5 [00:07<00:03,  1.74s/img]/home/raj_99/Projects/SPIT_Hackathon/umixformer_pipeline/explain_shap.py:126: UserWarning: Tight layout not applied. The left and right margins cannot be made large enough to accommodate all Axes decorations.
+  plt.tight_layout()
+XAI:  80%|████████████████████████████████████████          | 4/5 [00:07<00:01,  1.19s/img]/home/raj_99/Projects/SPIT_Hackathon/umixformer_pipeline/explain_shap.py:126: UserWarning: Tight layout not applied. The left and right margins cannot be made large enough to accommodate all Axes decorations.
+  plt.tight_layout()
+XAI: 100%|██████████████████████████████████████████████████| 5/5 [00:07<00:00,  1.55s/img]
+/home/raj_99/Projects/SPIT_Hackathon/umixformer_pipeline/explain_shap.py:152: UserWarning: Tight layout not applied. The left and right margins cannot be made large enough to accommodate all Axes decorations.
+  plt.tight_layout()
+
+============================================================
+  XAI Class-Level Importance (Mean |Gradient|)
+============================================================
+  Class           Mean Importance
+  --------------------------------
+  Driveable              0.000088
+  Vegetation             0.000082
+  Obstacle               0.000024
+  Sky                    0.000001
+============================================================
+  CSV → /home/raj_99/Projects/SPIT_Hackathon/umixformer_pipeline/predictions/shap_explanations/xai_analysis.csv
+XAI explanations saved → /home/raj_99/Projects/SPIT_Hackathon/umixformer_pipeline/predictions/shap_explanations/
+Using device: cuda
+Loaded model from /home/raj_99/Projects/SPIT_Hackathon/umixformer_pipeline/checkpoints/umixformer_best.pth
+
+[1/2] Evaluating on RAW images …
+  Done in 5.5s                                                                             
+[2/2] Evaluating on PREPROCESSED images (dehaze + histeq) …
+  Done in 284.7s                                                                           
+==============================================================================
+  MODEL vs MODEL + PREPROCESSING — VAL set
+==============================================================================
+  Metric                     Model Only  Model+Preproc          Δ
+  --------------------------------------------------------------
+  Mean IoU                       0.7002         0.5445   -0.1557
+  Mean Dice                      0.8031         0.6709   -0.1322
+  Pixel Accuracy                 0.8806         0.7683   -0.1124
+
+  Per-Class IoU
+  --------------------------------------------------------------
+    Driveable                    0.6438         0.4142   -0.2297
+    Vegetation                   0.7910         0.6431   -0.1479
+    Obstacle                     0.3840         0.2288   -0.1553
+    Sky                          0.9821         0.8919   -0.0902
+
+  Per-Class Dice
+  --------------------------------------------------------------
+    Driveable                    0.7833         0.5857   -0.1976
+    Vegetation                   0.8833         0.7828   -0.1005
+    Obstacle                     0.5550         0.3724   -0.1826
+    Sky                          0.9910         0.9429   -0.0481
+==============================================================================
+  ❌  Preprocessing HURTS segmentation  (ΔmIoU = -0.1557)
+==============================================================================
+  CSV → /home/raj_99/Projects/SPIT_Hackathon/umixformer_pipeline/predictions/comparison/comparison_val.csv
+  Chart → /home/raj_99/Projects/SPIT_Hackathon/umixformer_pipeline/predictions/comparison/comparison_chart_val.png

@@ -39,7 +39,7 @@ BATCH_SIZE = 2
 LEARNING_RATE = 6e-5          # lower LR for fine-tuning pretrained encoder
 ENCODER_LR_MULT = 0.1        # encoder trains at 10× lower LR
 WEIGHT_DECAY = 0.01
-NUM_EPOCHS = 50
+NUM_EPOCHS = 20
 NUM_WORKERS = 4
 GRAD_ACCUM_STEPS = 4          # effective batch = BATCH_SIZE × GRAD_ACCUM_STEPS = 8
 
@@ -68,7 +68,7 @@ DICE_SMOOTH = 1.0
 LOSS_WEIGHTS = {"focal": 1.0, "dice": 1.0}  # combined loss weighting
 
 # ============================================================================
-# Class definitions — 4 super-classes for UGV navigation
+# Class definitions — 4 super-classes for UGV navigation (Driveable, Vegetation, Obstacle, Sky)
 # ============================================================================
 # Raw mask pixel value → original 10-class id
 VALUE_MAP = {
@@ -84,37 +84,39 @@ VALUE_MAP = {
     10000: 9,    # Sky
 }
 
-# 10-class → 3 super-class mapping
-#   0 = Terrain   (Dry Grass, Landscape — open ground the UGV can traverse)
-#   1 = Obstacle  (Trees, Bushes, Flowers, Ground Clutter, Logs, Rocks —
-#                  anything the UGV cannot drive through)
-#   2 = Sky
+# 10-class → 4 super-class mapping
+#   0 = Driveable    (Landscape — open ground the UGV can traverse)
+#   1 = Vegetation   (Trees, Lush Bushes, Dry Grass, Dry Bushes, Ground Clutter, Flowers)
+#   2 = Obstacle     (Logs, Rocks — hard obstacles, must avoid)
+#   3 = Sky
 CLASS_REMAP = {
-    0: 1,   # Trees         → Obstacle
-    1: 1,   # Lush Bushes   → Obstacle
-    2: 1,   # Dry Grass     → Terrain
-    3: 1,   # Dry Bushes    → Obstacle
-    4: 1,   # Ground Clutter→ Obstacle
-    5: 1,   # Flowers       → Obstacle
-    6: 1,   # Logs          → Obstacle
-    7: 1,   # Rocks         → Obstacle
-    8: 0,   # Landscape     → Terrain
-    9: 2,   # Sky           → Sky
+    0: 1,   # Trees         → Vegetation
+    1: 1,   # Lush Bushes   → Vegetation
+    2: 1,   # Dry Grass     → Vegetation
+    3: 1,   # Dry Bushes    → Vegetation
+    4: 2,   # Ground Clutter→ Obstacle
+    5: 1,   # Flowers       → Vegetation
+    6: 2,   # Logs          → Obstacle
+    7: 2,   # Rocks         → Obstacle
+    8: 0,   # Landscape     → Driveable
+    9: 3,   # Sky           → Sky
 }
 
-NUM_CLASSES = 3
+NUM_CLASSES = 4
 
 CLASS_NAMES = [
-    "Terrain",      # 0
-    "Obstacle",     # 1
-    "Sky",          # 2
+    "Driveable",    # 0
+    "Vegetation",   # 1
+    "Obstacle",     # 2
+    "Sky",          # 3
 ]
 
 # RGB colour palette for visualisation
 COLOR_PALETTE = np.array([
-    [0, 200, 0],      # Terrain   – green
-    [220, 50, 50],    # Obstacle  – red
-    [135, 206, 235],  # Sky       – sky blue
+    [0, 200, 0],      # Driveable  – green
+    [200, 0, 200],    # Vegetation – magenta/purple
+    [255, 50, 50],    # Obstacle   – red
+    [135, 206, 235],  # Sky        – sky blue
 ], dtype=np.uint8)
 
 # ImageNet normalisation

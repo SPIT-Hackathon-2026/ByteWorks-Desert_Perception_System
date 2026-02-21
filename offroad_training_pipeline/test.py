@@ -63,6 +63,10 @@ def parse_args():
     parser.add_argument("--num_samples", type=int, default=20,
                         help="Number of comparison visualisations to save")
     parser.add_argument("--num_workers", type=int, default=NUM_WORKERS)
+    parser.add_argument("--lime", action="store_true",
+                        help="Also generate LIME explanations for --num_samples images")
+    parser.add_argument("--lime_samples", type=int, default=200,
+                        help="LIME perturbation count")
     args = parser.parse_args()
     # Auto-detect best checkpoint
     if args.model_path is None:
@@ -254,6 +258,22 @@ def main():
     print(f"  masks_color/    – coloured RGB masks ({sample_count} images)")
     print(f"  overlays/       – image+prediction overlays ({sample_count} images)")
     print(f"  comparisons/    – side-by-side panels ({min(sample_count, args.num_samples)} images)")
+
+    # ---- optional LIME explanations ----
+    if args.lime:
+        from offroad_training_pipeline.explain_lime import generate_lime_explanations
+        lime_dir = os.path.join(args.output_dir, "lime_explanations")
+        lime_dataset = val_loader.dataset
+        generate_lime_explanations(
+            backbone=backbone,
+            head=classifier,
+            dataset=lime_dataset,
+            output_dir=lime_dir,
+            device=device,
+            num_images=args.num_samples,
+            num_samples=args.lime_samples,
+        )
+
     print("Inference complete! ✓")
 
 

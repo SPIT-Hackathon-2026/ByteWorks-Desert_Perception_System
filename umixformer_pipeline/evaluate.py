@@ -52,6 +52,12 @@ def parse_args():
     p.add_argument("--output_dir", type=str, default=PREDICTIONS_DIR)
     p.add_argument("--batch_size", type=int, default=1)
     p.add_argument("--save_predictions", action="store_true", default=True)
+    p.add_argument("--xai", action="store_true",
+                   help="Generate SHAP explanations after evaluation")
+    p.add_argument("--xai_images", type=int, default=5,
+                   help="Number of images to explain with SHAP")
+    p.add_argument("--compare", action="store_true",
+                   help="Run model vs model+preprocessing comparison")
     return p.parse_args()
 
 
@@ -228,6 +234,31 @@ def main():
     )
 
     print_and_save_metrics(metrics, args.output_dir, args.split)
+
+    # Optional SHAP explanations
+    if args.xai:
+        from umixformer_pipeline.explain_shap import generate_shap_explanations
+        shap_dir = os.path.join(args.output_dir, "shap_explanations")
+        generate_shap_explanations(
+            model=model,
+            dataset=dataloader.dataset,
+            output_dir=shap_dir,
+            device=DEVICE,
+            num_images=args.xai_images,
+        )
+
+    # Optional model vs model+preprocessing comparison
+    if args.compare:
+        from umixformer_pipeline.compare_preproc import main as compare_main
+        import sys
+        sys.argv = [
+            "compare_preproc",
+            "--checkpoint", args.checkpoint,
+            "--split", args.split,
+            "--output_dir", os.path.join(args.output_dir, "comparison"),
+            "--batch_size", str(args.batch_size),
+        ]
+        compare_main()
 
 
 if __name__ == "__main__":
