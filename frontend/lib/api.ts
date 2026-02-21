@@ -12,8 +12,11 @@ export interface ClassDistribution {
 }
 
 export interface SegmentationResult {
+  original_b64: string
   mask_b64: string
   overlay_b64: string
+  shap_b64?: string
+  defog_b64?: string
   class_distribution: ClassDistribution[]
   terrain_grid: number[][]
   inference_ms: number

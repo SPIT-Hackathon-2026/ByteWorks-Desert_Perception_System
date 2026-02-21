@@ -11,11 +11,11 @@ import {
 } from "lucide-react"
 
 const architectureLayers = [
-  { name: "Input", desc: "960×540 → 476×266 RGB", color: "#94a3b8" },
-  { name: "DINOv2 ViT-S/14", desc: "Frozen backbone · 384-dim patch tokens", color: "#06b6d4" },
-  { name: "SegFormer Transformer", desc: "4 blocks · 8 heads · efficient self-attention", color: "#22d3ee" },
-  { name: "Mix-FFN Decoder", desc: "FC → DWConv → GELU → FC per block", color: "#f59e0b" },
-  { name: "Output", desc: "4-class segmentation · 4.4M params", color: "#10b981" },
+  { name: "ConvNeXt Encoder", desc: "4-stage hierarchical feature extraction", color: "#94a3b8" },
+  { name: "Mix-Attention Sync", desc: "Encoder-decoder multi-scale feature alignment", color: "#06b6d4" },
+  { name: "U-Net Decoder", desc: "Progressive refinement via self-attention", color: "#22d3ee" },
+  { name: "Feature Fusion", desc: "Final multi-resolution feature concatenation", color: "#f59e0b" },
+  { name: "Segmentation Output", desc: "4-class navigation-ready mask", color: "#10b981" },
 ]
 
 export function ModelTransparency() {
@@ -46,7 +46,7 @@ export function ModelTransparency() {
             <div className="mb-5 flex items-center gap-2">
               <Brain className="h-4 w-4 text-primary" />
               <h3 className="text-sm font-semibold text-foreground">
-                DINOv2 + SegFormer Pipeline
+                Vision Transformer Pipeline
               </h3>
             </div>
 
@@ -54,15 +54,22 @@ export function ModelTransparency() {
               {architectureLayers.map((layer, i) => (
                 <div key={layer.name} className="flex w-full flex-col items-center">
                   <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
+                    initial={{ opacity: 0, x: -20, rotateX: 20 }}
+                    whileInView={{ opacity: 1, x: 0, rotateX: 0 }}
+                    whileHover={{
+                      scale: 1.02,
+                      rotateY: 5,
+                      rotateX: -5,
+                      boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)"
+                    }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.4, delay: i * 0.1 }}
-                    className="flex w-full max-w-md items-center gap-4 rounded-lg border border-border bg-secondary/30 px-5 py-3"
+                    className="flex w-full max-w-md items-center gap-4 rounded-lg border border-border bg-secondary/30 px-5 py-3 cursor-pointer preserve-3d"
+                    style={{ perspective: "1000px" }}
                   >
                     <div
-                      className="h-3 w-3 shrink-0 rounded-full"
-                      style={{ backgroundColor: layer.color }}
+                      className="h-3 w-3 shrink-0 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)]"
+                      style={{ backgroundColor: layer.color, boxShadow: `0 0 10px ${layer.color}80` }}
                     />
                     <div className="flex-1">
                       <p className="text-sm font-medium text-foreground">
@@ -74,7 +81,12 @@ export function ModelTransparency() {
                     </div>
                   </motion.div>
                   {i < architectureLayers.length - 1 && (
-                    <ArrowRight className="my-1 h-4 w-4 rotate-90 text-muted-foreground/30" />
+                    <motion.div
+                      animate={{ y: [0, 5, 0] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    >
+                      <ArrowRight className="my-1 h-4 w-4 rotate-90 text-muted-foreground/30" />
+                    </motion.div>
                   )}
                 </div>
               ))}
@@ -159,7 +171,7 @@ export function ModelTransparency() {
               <ul className="space-y-2 text-xs text-muted-foreground">
                 <li className="flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full bg-chart-2" />
-                  DINOv2 self-supervised pre-training
+                  Self-supervised feature pre-training
                 </li>
                 <li className="flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full bg-chart-2" />

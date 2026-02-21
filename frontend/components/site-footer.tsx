@@ -13,7 +13,7 @@ export function SiteFooter() {
           </span>
         </div>
         <p className="max-w-md text-xs leading-relaxed text-muted-foreground">
-          DINOv2 + SegFormer pipeline for off-road terrain
+          Autonomous Vision Transformer pipeline for off-road terrain
           segmentation. Built with Next.js, PyTorch, and FastAPI.
         </p>
         <div className="flex items-center gap-6">

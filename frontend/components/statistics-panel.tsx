@@ -2,8 +2,9 @@
 
 import { motion } from "framer-motion"
 import {
-  BarChart,
-  Bar,
+  PieChart,
+  Pie,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -60,10 +61,10 @@ export function StatisticsPanel({ isComplete, segResult }: StatisticsPanelProps)
   // Use real data if available, fallback to static
   const liveClassData = segResult
     ? segResult.class_distribution.map((c) => ({
-        name: c.name.length > 12 ? c.name.slice(0, 10) + "…" : c.name,
-        value: c.percentage,
-        fill: c.color.replace("rgb(", "rgba(").replace(")", ",1)"),
-      }))
+      name: c.name.length > 12 ? c.name.slice(0, 10) + "…" : c.name,
+      value: c.percentage,
+      fill: c.color.replace("rgb(", "rgba(").replace(")", ",1)"),
+    }))
     : classData
 
   const liveInferenceMs = segResult ? `${segResult.inference_ms}ms` : "—"
@@ -154,21 +155,20 @@ export function StatisticsPanel({ isComplete, segResult }: StatisticsPanelProps)
               Class Distribution (%)
             </h3>
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={liveClassData} barSize={28}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#1e293b"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="name"
-                  tick={{ fill: "#94a3b8", fontSize: 11 }}
-                  axisLine={{ stroke: "#1e293b" }}
-                />
-                <YAxis
-                  tick={{ fill: "#94a3b8", fontSize: 11 }}
-                  axisLine={{ stroke: "#1e293b" }}
-                />
+              <PieChart>
+                <Pie
+                  data={liveClassData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {liveClassData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Pie>
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "#0f1724",
@@ -178,15 +178,7 @@ export function StatisticsPanel({ isComplete, segResult }: StatisticsPanelProps)
                     fontSize: 12,
                   }}
                 />
-                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                  {liveClassData.map((entry) => (
-                    <motion.rect
-                      key={entry.name}
-                      fill={entry.fill}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
+              </PieChart>
             </ResponsiveContainer>
           </motion.div>
 

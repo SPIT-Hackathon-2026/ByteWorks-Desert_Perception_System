@@ -76,6 +76,7 @@ export default function Home() {
         <ProcessingPipeline
           isProcessing={isProcessing || isComplete}
           currentStep={isComplete ? 7 : currentStep}
+          segResult={segResult}
         />
       )}
 

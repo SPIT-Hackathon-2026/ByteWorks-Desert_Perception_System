@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Upload, Cpu, Shield, Scan } from "lucide-react"
+import { Upload, Cpu, Shield, Scan, Target, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface HeroSectionProps {
@@ -11,17 +11,23 @@ interface HeroSectionProps {
 export function HeroSection({ onUploadClick }: HeroSectionProps) {
   return (
     <section className="relative flex min-h-[90vh] flex-col items-center justify-center px-4 py-20 text-center">
-      {/* Radial glow behind title */}
-      <div
-        className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-        style={{
-          width: 800,
-          height: 800,
-          background:
-            "radial-gradient(circle, rgba(6,182,212,0.08) 0%, rgba(6,182,212,0.02) 40%, transparent 70%)",
-        }}
-        aria-hidden="true"
-      />
+      {/* Background Image with subtle animation */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        <motion.div
+          initial={{ scale: 1.1, opacity: 0 }}
+          animate={{ scale: 1, opacity: 0.7 }}
+          transition={{ duration: 2, ease: "easeOut" }}
+          className="h-full w-full"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/desert-bg.png"
+            alt="Desert Background"
+            className="h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-background/60 to-background" />
+        </motion.div>
+      </div>
 
       <motion.div
         initial={{ opacity: 0, y: 30 }}
@@ -71,58 +77,16 @@ export function HeroSection({ onUploadClick }: HeroSectionProps) {
           size="lg"
           variant="outline"
           className="gap-2 border-border text-foreground hover:bg-secondary"
+          asChild
         >
-          <Scan className="h-5 w-5" />
-          View Demo
+          <a href="/demo.gif" target="_blank" rel="noopener noreferrer">
+            <Scan className="h-5 w-5" />
+            View Demo
+          </a>
         </Button>
       </motion.div>
 
-      {/* Feature cards */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
-        className="relative z-10 mt-20 grid w-full max-w-5xl grid-cols-1 gap-4 md:grid-cols-3"
-      >
-        {[
-          {
-            icon: Cpu,
-            title: "DINOv2 + SegFormer",
-            description:
-              "Frozen DINOv2 ViT-S/14 backbone with SegFormer transformer head for 4-class segmentation",
-          },
-          {
-            icon: Target,
-            title: "4 Super-Classes",
-            description:
-              "Driveable, Vegetation, Obstacle, Sky — optimised for UGV navigation with high mIoU",
-          },
-          {
-            icon: Zap,
-            title: "Real-Time Terrain Analysis",
-            description:
-              "Trees, bushes, grass, flowers, logs, rocks, landscape & sky — full off-road segmentation",
-          },
-        ].map((feature, i) => (
-          <motion.div
-            key={feature.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.8 + i * 0.15 }}
-            className="group rounded-xl border border-border bg-card/50 p-6 backdrop-blur-sm transition-colors hover:border-primary/30 hover:bg-card/80"
-          >
-            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-              <feature.icon className="h-5 w-5 text-primary" />
-            </div>
-            <h3 className="mb-2 text-sm font-semibold text-foreground">
-              {feature.title}
-            </h3>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              {feature.description}
-            </p>
-          </motion.div>
-        ))}
-      </motion.div>
+
     </section>
   )
 }
