@@ -42,7 +42,7 @@ from inference_engine.preprocess import preprocess_image as run_preprocess
 # UGV Ensemble (IR + Ultrasonic risk model)
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "IR_UV_Scripts"))
 try:
-    from ugv_ensemble import UGVEnsemble, derive_features
+    from ugv_ensemble import UGVEnsemble, derive_features  # type: ignore
     _UGV_ENSEMBLE_AVAILABLE = True
 except Exception as _e:
     print(f"[WARN] UGV ensemble not loaded: {_e}")
