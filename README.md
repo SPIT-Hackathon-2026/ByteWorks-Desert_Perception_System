@@ -11,12 +11,15 @@
 
 ## 🎥 Live Demo
 
-[![Watch the demo](https://img.shields.io/badge/▶_Watch_Demo-FF0000?style=for-the-badge&logo=youtube)](./Frontend_Demo.mp4)
+<p align="center">
+  <a href="./Frontend_Demo.mp4">
+    <img src="./demo-preview.gif" width="700" style="border-radius:10px;" alt="Click to Watch Demo">
+  </a>
+</p>
 
-<video width="100%" controls>
-  <source src="./Frontend_Demo.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+<p align="center">
+  ▶ Click the preview to watch full demo
+</p>
 
 ---
 
@@ -794,7 +797,7 @@ open https://semantic-segmentation-api.onrender.com/docs
 |---|---|
 | Raj | [@CodeCraftsmanRaj](https://github.com/CodeCraftsmanRaj) |
 | Shivani Bhat | [@shivanibhat24](https://github.com/shivanibhat24) |
-
+| Suyog Repal | [@suyog-repal](https://github.com/suyog-repal) |
 ---
 
 ## 📄 License
