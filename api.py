@@ -53,7 +53,10 @@ app = FastAPI(title="Desert Perception API", version="4.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000",  # Local development
+        "https://semantic-segmentation-app.vercel.app",  # Update with your Vercel URL
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
