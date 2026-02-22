@@ -2,5 +2,5 @@ services:
   - type: web
     name: spit-hackathon-api
     runtime: python
-    buildCommand: "uv sync --frozen && uv cache prune --ci"
-    startCommand: "uv run uvicorn api:app --host 0.0.0.0 --port 8000"
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn api:app --host 0.0.0.0 --port 8000"
