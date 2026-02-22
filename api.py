@@ -37,18 +37,33 @@ except ImportError:
     _HF_AVAILABLE = False
     print("[WARN] huggingface_hub not available — will use local checkpoint only")
 
-from inference_engine.config import (
-    CLASS_NAMES,
-    COLOR_PALETTE,
-    DEVICE,
-    IMG_SIZE,
-    IMAGENET_MEAN,
-    IMAGENET_STD,
-    NUM_CLASSES,
-)
-from inference_engine.model import UMixFormerSeg
-from inference_engine.utils import mask_to_color
-from inference_engine.preprocess import preprocess_image as run_preprocess
+try:
+    from inference_engine.config import (
+        CLASS_NAMES,
+        COLOR_PALETTE,
+        DEVICE,
+        IMG_SIZE,
+        IMAGENET_MEAN,
+        IMAGENET_STD,
+        NUM_CLASSES,
+    )
+    from inference_engine.model import UMixFormerSeg
+    from inference_engine.utils import mask_to_color
+    from inference_engine.preprocess import preprocess_image as run_preprocess
+    _INFERENCE_ENGINE_OK = True
+except Exception as e:
+    print(f"[CRITICAL] Failed to import inference engine: {e}")
+    import traceback
+    traceback.print_exc()
+    _INFERENCE_ENGINE_OK = False
+    # Provide fallback values
+    CLASS_NAMES = ["Unknown"] * 4
+    COLOR_PALETTE = [[0, 0, 0]] * 4
+    DEVICE = torch.device("cpu")
+    IMG_SIZE = 384
+    IMAGENET_MEAN = [0.485, 0.456, 0.406]
+    IMAGENET_STD = [0.229, 0.224, 0.225]
+    NUM_CLASSES = 4
 
 # UGV Ensemble (IR + Ultrasonic risk model)
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "IR_UV_Scripts"))
@@ -335,81 +350,81 @@ async def segment(file: UploadFile = File(...)):
 
         model = _get_model()
 
-    # Read uploaded image
-    raw = await file.read()
-    pil_img = Image.open(io.BytesIO(raw))
-    input_tensor, original_np = _preprocess_image(pil_img)
+        # Read uploaded image
+        raw = await file.read()
+        pil_img = Image.open(io.BytesIO(raw))
+        input_tensor, original_np = _preprocess_image(pil_img)
 
-    # ── NN inference ─────────────────────────────────────────────────
-    with torch.no_grad():
-        with torch.amp.autocast("cuda", enabled=_device.type == "cuda"):
-            logits = model(input_tensor)
-            # Resize output to 384x384 if needed (model already interpolates)
-            outputs = F.interpolate(
-                logits,
-                size=(IMG_SIZE, IMG_SIZE),
-                mode="bilinear",
-                align_corners=False,
-            )
+        # ── NN inference ─────────────────────────────────────────────────
+        with torch.no_grad():
+            with torch.amp.autocast("cuda", enabled=_device.type == "cuda"):
+                logits = model(input_tensor)
+                # Resize output to 384x384 if needed (model already interpolates)
+                outputs = F.interpolate(
+                    logits,
+                    size=(IMG_SIZE, IMG_SIZE),
+                    mode="bilinear",
+                    align_corners=False,
+                )
 
-    final = outputs.argmax(dim=1)[0].cpu().numpy()
-    t_inference = time.time() - t0
+        final = outputs.argmax(dim=1)[0].cpu().numpy()
+        t_inference = time.time() - t0
 
-    # ── Build response visuals ───────────────────────────────────────
-    color_mask = mask_to_color(final.astype(np.uint8))
+        # ── Build response visuals ───────────────────────────────────────
+        color_mask = mask_to_color(final.astype(np.uint8))
 
-    img_resized = cv2.resize(original_np, (IMG_SIZE, IMG_SIZE), interpolation=cv2.INTER_LINEAR)
-    overlay = cv2.addWeighted(img_resized, 0.5, color_mask, 0.5, 0)
+        img_resized = cv2.resize(original_np, (IMG_SIZE, IMG_SIZE), interpolation=cv2.INTER_LINEAR)
+        overlay = cv2.addWeighted(img_resized, 0.5, color_mask, 0.5, 0)
 
-    # Preprocessing (Defogged)
-    img_preprocessed = run_preprocess(img_resized)
+        # Preprocessing (Defogged)
+        img_preprocessed = run_preprocess(img_resized)
 
-    # Class distribution
-    total_px = final.size
-    class_distribution = []
-    for cid in range(NUM_CLASSES):
-        count = int((final == cid).sum())
-        pct = round(count / total_px * 100, 2)
-        class_distribution.append({
-            "id": cid,
-            "name": CLASS_NAMES[cid],
-            "percentage": pct,
-            "color": f"rgb({COLOR_PALETTE[cid][0]},{COLOR_PALETTE[cid][1]},{COLOR_PALETTE[cid][2]})",
-            "source": "U-MixFormer",
+        # Class distribution
+        total_px = final.size
+        class_distribution = []
+        for cid in range(NUM_CLASSES):
+            count = int((final == cid).sum())
+            pct = round(count / total_px * 100, 2)
+            class_distribution.append({
+                "id": cid,
+                "name": CLASS_NAMES[cid],
+                "percentage": pct,
+                "color": f"rgb({COLOR_PALETTE[cid][0]},{COLOR_PALETTE[cid][1]},{COLOR_PALETTE[cid][2]})",
+                "source": "U-MixFormer",
+            })
+
+        class_distribution.sort(key=lambda x: x["percentage"], reverse=True)
+
+        # Terrain grid for 3D (downsampled)
+        ds = 8
+        small_h, small_w = IMG_SIZE // ds, IMG_SIZE // ds
+        small_mask = cv2.resize(
+            final.astype(np.uint8),
+            (small_w, small_h),
+            interpolation=cv2.INTER_NEAREST,
+        )
+        terrain_grid = small_mask.tolist()
+
+        # ── Risk assessment (UGV ensemble + segmentation) ────────────────────
+        risk_assessment = _compute_risk(class_distribution, final)
+
+        return JSONResponse({
+            "original_b64": _ndarray_to_b64png(img_resized),
+            "mask_b64": _ndarray_to_b64png(color_mask),
+            "overlay_b64": _ndarray_to_b64png(overlay),
+            "defog_b64": _ndarray_to_b64png(img_preprocessed),
+            "class_distribution": class_distribution,
+            "terrain_grid": terrain_grid,
+            "inference_ms": round(t_inference * 1000, 1),
+            "image_size": {"w": IMG_SIZE, "h": IMG_SIZE},
+            "risk_assessment": risk_assessment,
+            "pipeline": {
+                "backbone": "ConvNeXt (Hierarchical Features)",
+                "head": "U-MixFormer Decoder (Mix-Attention)",
+                "classes": CLASS_NAMES,
+                "total_classes": NUM_CLASSES,
+            },
         })
-
-    class_distribution.sort(key=lambda x: x["percentage"], reverse=True)
-
-    # Terrain grid for 3D (downsampled)
-    ds = 8
-    small_h, small_w = IMG_SIZE // ds, IMG_SIZE // ds
-    small_mask = cv2.resize(
-        final.astype(np.uint8),
-        (small_w, small_h),
-        interpolation=cv2.INTER_NEAREST,
-    )
-    terrain_grid = small_mask.tolist()
-
-    # ── Risk assessment (UGV ensemble + segmentation) ────────────────────
-    risk_assessment = _compute_risk(class_distribution, final)
-
-    return JSONResponse({
-        "original_b64": _ndarray_to_b64png(img_resized),
-        "mask_b64": _ndarray_to_b64png(color_mask),
-        "overlay_b64": _ndarray_to_b64png(overlay),
-        "defog_b64": _ndarray_to_b64png(img_preprocessed),
-        "class_distribution": class_distribution,
-        "terrain_grid": terrain_grid,
-        "inference_ms": round(t_inference * 1000, 1),
-        "image_size": {"w": IMG_SIZE, "h": IMG_SIZE},
-        "risk_assessment": risk_assessment,
-        "pipeline": {
-            "backbone": "ConvNeXt (Hierarchical Features)",
-            "head": "U-MixFormer Decoder (Mix-Attention)",
-            "classes": CLASS_NAMES,
-            "total_classes": NUM_CLASSES,
-        },
-    })
     
     except Exception as e:
         import traceback
