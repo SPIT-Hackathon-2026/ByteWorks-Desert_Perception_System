@@ -9,6 +9,8 @@ Serves a /api/segment endpoint that accepts an image upload and returns:
 
 Start:
     uv run uvicorn api:app --host 0.0.0.0 --port 8000 --reload
+    
+On Render: Model checkpoint is downloaded from Hugging Face on first request.
 """
 
 import base64
@@ -16,6 +18,7 @@ import io
 import os
 import sys
 import time
+from pathlib import Path
 
 import cv2
 import numpy as np
@@ -25,6 +28,14 @@ from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from PIL import Image
+
+# Optional: huggingface_hub for model download (fallback to local if not available)
+try:
+    from huggingface_hub import hf_hub_download
+    _HF_AVAILABLE = True
+except ImportError:
+    _HF_AVAILABLE = False
+    print("[WARN] huggingface_hub not available — will use local checkpoint only")
 
 from inference_engine.config import (
     CLASS_NAMES,
@@ -88,14 +99,19 @@ def _get_ensemble():
     return _ensemble
 
 def _get_model():
-    """Lazy-load U-MixFormer model."""
+    """Lazy-load U-MixFormer model, downloading from Hugging Face if needed."""
     global _model
 
     if _model is None:
         print("Loading U-MixFormer model …")
-        _model = UMixFormerSeg(pretrained_encoder=False).to(_device)
+        try:
+            _model = UMixFormerSeg(pretrained_encoder=False).to(_device)
+            print(f"Model initialized on device: {_device}")
+        except Exception as e:
+            print(f"[ERROR] Failed to create model: {e}")
+            raise
         
-        # Load best checkpoint - try multiple paths
+        # Try multiple paths for checkpoint
         possible_paths = [
             "umixformer_pipeline/checkpoints/umixformer_best.pth",  # Relative (Render)
             os.path.join(os.path.dirname(__file__), "umixformer_pipeline/checkpoints/umixformer_best.pth"),  # Script dir
@@ -109,19 +125,39 @@ def _get_model():
                 print(f"Found checkpoint at: {path}")
                 break
         
+        # If not found locally, try Hugging Face
+        if not ckpt_path and _HF_AVAILABLE:
+            try:
+                print("Checkpoint not found locally. Downloading from Hugging Face…")
+                os.makedirs("umixformer_pipeline/checkpoints", exist_ok=True)
+                ckpt_path = hf_hub_download(
+                    repo_id="ByteWorks/semantic-segmentation",  # Replace with actual repo
+                    filename="umixformer_best.pth",
+                    cache_dir="umixformer_pipeline/checkpoints",
+                    force_download=False,
+                )
+                print(f"Downloaded checkpoint to: {ckpt_path}")
+            except Exception as e:
+                print(f"[WARN] Failed to download from Hugging Face: {e}")
+                ckpt_path = None
+        
         if ckpt_path:
             try:
+                print(f"Loading checkpoint from: {ckpt_path} (size: {os.path.getsize(ckpt_path) / 1e9:.1f}GB)")
                 ckpt = torch.load(ckpt_path, map_location=_device, weights_only=False)
                 _model.load_state_dict(ckpt["model_state_dict"])
                 print(f"✅ Loaded weights from {ckpt_path}")
             except Exception as e:
                 print(f"⚠️ Failed to load checkpoint: {e}")
                 print("Using randomly initialized model")
+                import traceback
+                traceback.print_exc()
         else:
-            print(f"⚠️ Checkpoint not found in any of: {possible_paths}")
-            print("Using randomly initialized model")
+            print(f"⚠️ Checkpoint not found and Hugging Face download unavailable")
+            print("Using randomly initialized model (predictions will be unreliable)")
         
         _model.eval()
+        print("Model ready for inference")
 
     return _model
 
@@ -269,7 +305,26 @@ def root():
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "service": "Desert Perception API"}
+    """Check if API is healthy and model is loaded."""
+    try:
+        model = _get_model()
+        model_loaded = _model is not None
+        return JSONResponse({
+            "status": "ok",
+            "service": "Desert Perception API",
+            "model_loaded": model_loaded,
+            "device": str(_device),
+        })
+    except Exception as e:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "degraded",
+                "service": "Desert Perception API",
+                "error": str(e),
+                "note": "Model loading failed — check logs"
+            }
+        )
 
 
 @app.post("/api/segment")
