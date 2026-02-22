@@ -160,12 +160,13 @@ def preprocess_image(pil_img: Image.Image) -> torch.Tensor:
     return tensor.to(DEVICE)
 
 
-def run_inference_batch(image_paths: list, variant_type: str, results_dir: str) -> dict:
+def run_inference_batch(image_paths: list, variant_type: str, results_dir: str, orig_images: dict = None, gt_masks: dict = None) -> dict:
     """Run batch inference, save predictions, and compute metrics."""
     model = get_model()
     cm_total = torch.zeros(NUM_CLASSES, NUM_CLASSES, dtype=torch.long)
     inference_times = []
     class_dists = defaultdict(list)
+    predictions_data = {}
     
     # Create output directories
     pred_base_dir = os.path.join(results_dir, f"predictions_{variant_type.lower()}")
@@ -173,15 +174,18 @@ def run_inference_batch(image_paths: list, variant_type: str, results_dir: str) 
     masks_color_dir = os.path.join(pred_base_dir, "masks_color")
     overlay_dir = os.path.join(pred_base_dir, "overlays")
     input_dir = os.path.join(pred_base_dir, "input_images")
+    comparison_dir = os.path.join(pred_base_dir, "comparisons")
     
     os.makedirs(masks_dir, exist_ok=True)
     os.makedirs(masks_color_dir, exist_ok=True)
     os.makedirs(overlay_dir, exist_ok=True)
     os.makedirs(input_dir, exist_ok=True)
+    os.makedirs(comparison_dir, exist_ok=True)
     
     for img_path in tqdm(image_paths, desc=f"Inferencing {variant_type}", leave=False):
         t0 = time.time()
         fname = os.path.basename(img_path)
+        stem = fname.replace('.png', '').replace(f'_{variant_type.lower()}', '')
         
         # Load and preprocess
         pil_img = Image.open(img_path).convert('RGB')
@@ -222,12 +226,40 @@ def run_inference_batch(image_paths: list, variant_type: str, results_dir: str) 
         overlay_img = Image.fromarray(overlay)
         overlay_img.save(os.path.join(overlay_dir, fname))
         
+        # Store prediction data for comparison
+        predictions_data[stem] = {
+            "original": orig_images.get(stem) if orig_images else None,
+            "gt_mask": gt_masks.get(stem) if gt_masks else None,
+            "pred_mask_color": color_mask,
+            "overlay": overlay,
+        }
+        
         # Compute class distribution
         total_px = final.size
         for cid in range(NUM_CLASSES):
             count = int((final == cid).sum())
             pct = count / total_px * 100
             class_dists[CLASS_NAMES[cid]].append(pct)
+    
+    # Generate comparison images (Original | GT Mask | Pred Mask | Overlay)
+    if orig_images and gt_masks:
+        for stem, pred_data in predictions_data.items():
+            if pred_data["original"] is not None and pred_data["gt_mask"] is not None:
+                orig = pred_data["original"]
+                gt_mask = pred_data["gt_mask"]  # Literal from folder
+                pred_mask_color = pred_data["pred_mask_color"]
+                overlay = pred_data["overlay"]
+                
+                h, w = orig.shape[:2]
+                # Create 4-column comparison: [original | gt_mask_literal | pred_mask | overlay]
+                canvas = np.zeros((h, w * 4, 3), dtype=np.uint8)
+                canvas[:, :w] = orig
+                canvas[:, w:2*w] = gt_mask
+                canvas[:, 2*w:3*w] = pred_mask_color
+                canvas[:, 3*w:] = overlay
+                
+                cmp_fname = f"{stem}_comparison.png"
+                Image.fromarray(canvas).save(os.path.join(comparison_dir, cmp_fname))
     
     # Compute aggregate metrics
     avg_inference = np.mean(inference_times)
@@ -305,11 +337,36 @@ def main():
     print("  RUNNING INFERENCE & COMPUTING METRICS")
     print("=" * 70)
     
+    # Load original test images for comparison
+    print("Loading original test images for comparison...")
+    original_images = {}
+    gt_segmentation_masks = {}
+    
+    test_seg_dir = "/home/raj_99/Projects/SPIT_Hackathon/dataset/Offroad_Segmentation_testImages/Segmentation"
+    
+    for img_file in all_images:
+        img_path = os.path.join(test_dir, img_file)
+        seg_path = os.path.join(test_seg_dir, img_file)
+        stem = img_file.replace('.png', '')
+        
+        # Load original image
+        orig_pil = Image.open(img_path).convert('RGB')
+        orig_np = np.array(orig_pil).astype(np.uint8)
+        orig_resized = cv2.resize(orig_np, (IMG_SIZE, IMG_SIZE), interpolation=cv2.INTER_LINEAR)
+        original_images[stem] = orig_resized
+        
+        # Load ground truth segmentation mask (literal from folder)
+        if os.path.exists(seg_path):
+            gt_pil = Image.open(seg_path).convert('RGB')  # Load as-is from folder
+            gt_np = np.array(gt_pil).astype(np.uint8)
+            gt_resized = cv2.resize(gt_np, (IMG_SIZE, IMG_SIZE), interpolation=cv2.INTER_NEAREST)
+            gt_segmentation_masks[stem] = gt_resized
+    
     # Inference on FOG variants
-    fog_results = run_inference_batch(fog_paths, "FOG", results_dir)
+    fog_results = run_inference_batch(fog_paths, "FOG", results_dir, original_images, gt_segmentation_masks)
     
     # Inference on MIST variants
-    mist_results = run_inference_batch(mist_paths, "MIST", results_dir)
+    mist_results = run_inference_batch(mist_paths, "MIST", results_dir, original_images, gt_segmentation_masks)
     
     # Generate comprehensive metrics report
     report = {
