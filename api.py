@@ -243,6 +243,11 @@ def _compute_risk(class_distribution: list, mask: np.ndarray) -> dict:
 
 # ─── Routes ──────────────────────────────────────────────────────────────
 
+@app.get("/")
+def root():
+    return {"status": "ok", "service": "Desert Perception API"}
+
+
 @app.get("/api/health")
 def health():
     return {"status": "ok", "model": "U-MixFormer", "device": str(_device)}
