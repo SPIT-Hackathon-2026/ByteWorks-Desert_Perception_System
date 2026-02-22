@@ -146,7 +146,7 @@ export function OutputDashboard({ originalImage, isComplete, isProcessing, curre
                   animate={{ filter: "brightness(1) blur(0px)" }}
                   transition={{ duration: 0.8 }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
                 <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between">
                   <div className="space-y-1">
                     <p className="text-[10px] uppercase tracking-[0.2em] text-white/40">Visual Stream</p>
