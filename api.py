@@ -67,6 +67,8 @@ _model = None
 _device = DEVICE
 _ensemble = None
 
+# Don't load model on startup — do it lazily on first request
+
 def _get_ensemble():
     """Lazy-load the UGV ensemble (RF models)."""
     global _ensemble
@@ -93,16 +95,32 @@ def _get_model():
         print("Loading U-MixFormer model …")
         _model = UMixFormerSeg(pretrained_encoder=False).to(_device)
         
-        # Load best checkpoint from umixformer_pipeline
-        ckpt_path = "/home/raj_99/Projects/SPIT_Hackathon/umixformer_pipeline/checkpoints/umixformer_best.pth"
+        # Load best checkpoint - try multiple paths
+        possible_paths = [
+            "umixformer_pipeline/checkpoints/umixformer_best.pth",  # Relative (Render)
+            os.path.join(os.path.dirname(__file__), "umixformer_pipeline/checkpoints/umixformer_best.pth"),  # Script dir
+            "/home/raj_99/Projects/SPIT_Hackathon/umixformer_pipeline/checkpoints/umixformer_best.pth",  # Local
+        ]
         
-        if os.path.exists(ckpt_path):
-            ckpt = torch.load(ckpt_path, map_location=_device, weights_only=False)
-            _model.load_state_dict(ckpt["model_state_dict"])
-            print(f"Loaded weights: {ckpt_path}")
+        ckpt_path = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                ckpt_path = path
+                print(f"Found checkpoint at: {path}")
+                break
+        
+        if ckpt_path:
+            try:
+                ckpt = torch.load(ckpt_path, map_location=_device, weights_only=False)
+                _model.load_state_dict(ckpt["model_state_dict"])
+                print(f"✅ Loaded weights from {ckpt_path}")
+            except Exception as e:
+                print(f"⚠️ Failed to load checkpoint: {e}")
+                print("Using randomly initialized model")
         else:
-            print(f"⚠  No checkpoint found at {ckpt_path}")
-
+            print(f"⚠️ Checkpoint not found in any of: {possible_paths}")
+            print("Using randomly initialized model")
+        
         _model.eval()
 
     return _model
@@ -246,20 +264,21 @@ def _compute_risk(class_distribution: list, mask: np.ndarray) -> dict:
 @app.get("/")
 @app.head("/")
 def root():
-    return {"status": "ok", "service": "Desert Perception API"}
+    return {"status": "ok", "service": "Desert Perception API", "note": "Model loads on first inference request"}
 
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "model": "U-MixFormer", "device": str(_device)}
+    return {"status": "ok", "service": "Desert Perception API"}
 
 
 @app.post("/api/segment")
 async def segment(file: UploadFile = File(...)):
     """Run segmentation on an uploaded image using U-MixFormer."""
-    t0 = time.time()
+    try:
+        t0 = time.time()
 
-    model = _get_model()
+        model = _get_model()
 
     # Read uploaded image
     raw = await file.read()
@@ -336,6 +355,19 @@ async def segment(file: UploadFile = File(...)):
             "total_classes": NUM_CLASSES,
         },
     })
+    
+    except Exception as e:
+        import traceback
+        error_msg = traceback.format_exc()
+        print(f"[ERROR] /api/segment failed:\n{error_msg}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": str(e),
+                "type": type(e).__name__,
+                "details": error_msg
+            }
+        )
 
 
 @app.get("/api/model-info")
