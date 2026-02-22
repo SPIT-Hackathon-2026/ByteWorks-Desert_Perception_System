@@ -55,7 +55,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",  # Local development
-        "https://semantic-segmentation-app.vercel.app",  # Update with your Vercel URL
+        "https://semantic-segmentation-raj.vercel.app",  # Your Vercel URL
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -244,6 +244,7 @@ def _compute_risk(class_distribution: list, mask: np.ndarray) -> dict:
 # ─── Routes ──────────────────────────────────────────────────────────────
 
 @app.get("/")
+@app.head("/")
 def root():
     return {"status": "ok", "service": "Desert Perception API"}
 
