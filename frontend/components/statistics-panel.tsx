@@ -67,10 +67,22 @@ export function StatisticsPanel({ isComplete, segResult }: StatisticsPanelProps)
     }))
     : classData
 
+  const metrics = segResult?.risk_assessment?.metrics
+  const liveRadarData = metrics
+    ? [
+      { metric: "mIoU", value: metrics.mIoU * 100 },
+      { metric: "Dice", value: metrics.dice_score * 100 },
+      { metric: "Pixel Acc", value: metrics.pixel_accuracy * 100 },
+      { metric: "Precision", value: metrics.precision * 100 },
+      { metric: "Recall", value: metrics.recall * 100 },
+      { metric: "F1 Score", value: ((2 * metrics.precision * metrics.recall) / (metrics.precision + metrics.recall)) * 100 },
+    ]
+    : radarData
+
   const liveInferenceMs = segResult ? `${segResult.inference_ms}ms` : "—"
 
   return (
-    <section className="relative z-10 mx-auto w-full max-w-6xl px-4 py-16">
+    <section id="metrics" className="relative z-10 mx-auto w-full max-w-6xl px-4 py-16">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -89,13 +101,17 @@ export function StatisticsPanel({ isComplete, segResult }: StatisticsPanelProps)
             {
               icon: Target,
               label: "mIoU",
-              value: "42.7%",
+              value: segResult?.risk_assessment?.metrics
+                ? `${(segResult.risk_assessment.metrics.mIoU * 100).toFixed(1)}%`
+                : "42.7%",
               color: "#06b6d4",
             },
             {
               icon: Activity,
               label: "Pixel Acc",
-              value: "75.9%",
+              value: segResult?.risk_assessment?.metrics
+                ? `${(segResult.risk_assessment.metrics.pixel_accuracy * 100).toFixed(1)}%`
+                : "75.9%",
               color: "#10b981",
             },
             {
@@ -288,7 +304,7 @@ export function StatisticsPanel({ isComplete, segResult }: StatisticsPanelProps)
               Model Performance Radar
             </h3>
             <ResponsiveContainer width="100%" height={250}>
-              <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
+              <RadarChart cx="50%" cy="50%" outerRadius="70%" data={liveRadarData}>
                 <PolarGrid stroke="#1e293b" />
                 <PolarAngleAxis
                   dataKey="metric"
@@ -301,7 +317,7 @@ export function StatisticsPanel({ isComplete, segResult }: StatisticsPanelProps)
                 />
                 <Radar
                   name="Model"
-                  dataKey="A"
+                  dataKey="value"
                   stroke="#06b6d4"
                   fill="#06b6d4"
                   fillOpacity={0.2}

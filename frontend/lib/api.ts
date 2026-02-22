@@ -11,6 +11,32 @@ export interface ClassDistribution {
   color: string
 }
 
+export interface RiskAssessment {
+  risk_score: number;
+  risk_level: "LOW" | "MEDIUM" | "HIGH";
+  obstacle_density: number;
+  uncertainty: number;
+  terrain_complexity: number;
+  visibility: number;
+  sensors?: {
+    ir_ratio: number;
+    dist_cm: number;
+  };
+  ensemble?: {
+    camouf_ensemble: number;
+    terrain_ensemble: number;
+    camouf_decision: number;
+    terrain_decision: number;
+  } | null;
+  metrics?: {
+    mIoU: number;
+    pixel_accuracy: number;
+    dice_score: number;
+    precision: number;
+    recall: number;
+  };
+}
+
 export interface SegmentationResult {
   original_b64: string
   mask_b64: string
@@ -21,6 +47,7 @@ export interface SegmentationResult {
   terrain_grid: number[][]
   inference_ms: number
   image_size: { w: number; h: number }
+  risk_assessment?: RiskAssessment
   pipeline: {
     backbone: string
     head: string

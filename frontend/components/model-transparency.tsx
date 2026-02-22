@@ -20,7 +20,7 @@ const architectureLayers = [
 
 export function ModelTransparency() {
   return (
-    <section className="relative z-10 mx-auto w-full max-w-6xl px-4 py-16">
+    <section id="architecture" className="relative z-10 mx-auto w-full max-w-6xl px-4 py-16">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}

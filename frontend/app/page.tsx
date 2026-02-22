@@ -26,44 +26,45 @@ export default function Home() {
     uploadRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [])
 
+  const startTimeRef = useRef(Date.now())
+
   const handleImageUploaded = useCallback(async (file: File, url: string) => {
+    startTimeRef.current = Date.now()
     setImageUrl(url)
     setIsProcessing(true)
     setIsComplete(false)
+    setCurrentStep(0)
     setSegResult(null)
     setApiError(null)
-    setCurrentStep(0)
-
-    // Animate pipeline steps while waiting for API
     const stepTimers: ReturnType<typeof setTimeout>[] = []
     for (let i = 1; i <= 6; i++) {
-      stepTimers.push(setTimeout(() => setCurrentStep(i), i * 600))
+      stepTimers.push(setTimeout(() => setCurrentStep(i), i * 1100))
     }
 
     try {
       const result = await segmentImage(file)
       setSegResult(result)
-      stepTimers.forEach(clearTimeout)
-      setCurrentStep(7)
+      const timeRemaining = Math.max(0, 6600 - (Date.now() - startTimeRef.current))
+
       setTimeout(() => {
-        setIsProcessing(false)
-        setIsComplete(true)
-      }, 400)
+        setCurrentStep(7)
+        setTimeout(() => {
+          setIsProcessing(false)
+          setIsComplete(true)
+        }, 800)
+      }, timeRemaining)
     } catch (err: any) {
       console.error("Segmentation API error:", err)
       setApiError(err.message || "Backend not available")
-      stepTimers.forEach(clearTimeout)
       setCurrentStep(7)
-      setTimeout(() => {
-        setIsProcessing(false)
-        setIsComplete(true)
-      }, 400)
+      setIsProcessing(false)
+      setIsComplete(true)
     }
   }, [])
 
   return (
     <main className="relative min-h-screen bg-background">
-      <NeuralBackground />
+      <NeuralBackground isProcessing={isProcessing} />
 
       <HeroSection onUploadClick={handleUploadClick} />
 
@@ -74,8 +75,8 @@ export default function Home() {
 
       {(isProcessing || isComplete) && (
         <ProcessingPipeline
-          isProcessing={isProcessing || isComplete}
-          currentStep={isComplete ? 7 : currentStep}
+          isProcessing={isProcessing}
+          currentStep={currentStep}
           segResult={segResult}
         />
       )}
@@ -93,7 +94,13 @@ export default function Home() {
         </div>
       )}
 
-      <OutputDashboard originalImage={imageUrl} isComplete={isComplete} segResult={segResult} />
+      <OutputDashboard
+        originalImage={imageUrl}
+        isComplete={isComplete}
+        isProcessing={isProcessing}
+        currentStep={currentStep}
+        segResult={segResult}
+      />
 
       <StatisticsPanel isComplete={isComplete} segResult={segResult} />
 

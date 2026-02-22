@@ -1,35 +1,30 @@
 "use client"
 
-import { useRef, useMemo, useState } from "react"
-import { motion } from "framer-motion"
-import { Box, Route, Eye } from "lucide-react"
+import { useRef, useMemo, useState, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Box, Route, Eye, Play, Pause, Film, RotateCcw, Maximize2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Canvas, useFrame } from "@react-three/fiber"
 import { OrbitControls, Text } from "@react-three/drei"
 import * as THREE from "three"
 import type { SegmentationResult } from "@/lib/api"
 
-/* ── Constants ──────────────────────────────────────────────────────────── */
-const CLASS_COLORS = [
-  new THREE.Color(0 / 255, 200 / 255, 0 / 255),
-  new THREE.Color(255 / 255, 165 / 255, 0 / 255),
-  new THREE.Color(220 / 255, 50 / 255, 50 / 255),
-  new THREE.Color(135 / 255, 206 / 255, 235 / 255),
-]
 const CLASS_NAMES = ["Driveable", "Vegetation", "Obstacle", "Sky"]
-const CLASS_HEIGHTS = [0.15, 0.8, 0.6, 3.0]
-
-/* ── Terrain mesh ───────────────────────────────────────────────────────── */
-const GRID_W = 34
-const GRID_H = 19
+const DESERT_COLORS = [
+  new THREE.Color("#c29d7c"), // Driveable (Sand)
+  new THREE.Color("#4ade80"), // Vegetation (Green)
+  new THREE.Color("#451a03"), // Obstacle (Rocks)
+  new THREE.Color("#38bdf8"), // Sky (Blue)
+]
 
 function generateTerrainClasses(): number[][] {
+  const gW = 34, gH = 19
   const grid: number[][] = []
-  for (let z = 0; z < GRID_H; z++) {
+  for (let z = 0; z < gH; z++) {
     const row: number[] = []
-    for (let x = 0; x < GRID_W; x++) {
-      const nz = z / GRID_H
-      if (nz < 0.25) row.push(3)
+    for (let x = 0; x < gW; x++) {
+      const nz = z / gH
+      if (nz < 0.25) row.push(3) // Sky
       else if (nz < 0.35) row.push(Math.random() < 0.6 ? 1 : 0)
       else if (nz < 0.55) {
         const r = Math.random()
@@ -44,66 +39,208 @@ function generateTerrainClasses(): number[][] {
   return grid
 }
 
-function TerrainMesh({ terrainGrid }: { terrainGrid?: number[][] }) {
+function TerrainMesh({ segResult }: { segResult?: SegmentationResult | null }) {
   const meshRef = useRef<THREE.Mesh>(null)
+
+  // ── Texture Loader ─────────────────────────────────────────────────────
+  const texture = useMemo(() => {
+    if (!segResult?.overlay_b64) return null
+    const loader = new THREE.TextureLoader()
+    return loader.load(`data:image/png;base64,${segResult.overlay_b64}`)
+  }, [segResult?.overlay_b64])
+
   const { geometry } = useMemo(() => {
-    const tc = terrainGrid && terrainGrid.length > 0 ? terrainGrid : generateTerrainClasses()
-    const gW = tc[0].length, gH = tc.length
-    const geo = new THREE.PlaneGeometry(gW * 0.3, gH * 0.3, gW - 1, gH - 1)
+    const grid = segResult?.terrain_grid || generateTerrainClasses()
+    const gW = grid[0].length
+    const gH = grid.length
+
+    // Create geometry larger than the grid points
+    const geo = new THREE.PlaneGeometry(gW * 0.4, gH * 0.4, gW - 1, gH - 1)
     const positions = geo.attributes.position
     const colorArr = new Float32Array(positions.count * 3)
+
     for (let i = 0; i < positions.count; i++) {
-      const ix = i % gW, iz = Math.floor(i / gW)
-      const cls = tc[Math.min(iz, gH - 1)][Math.min(ix, gW - 1)]
-      positions.setZ(i, CLASS_HEIGHTS[cls] + (Math.sin(ix * 0.5) * Math.cos(iz * 0.7)) * 0.15)
-      const c = CLASS_COLORS[cls]
-      colorArr[i * 3] = c.r; colorArr[i * 3 + 1] = c.g; colorArr[i * 3 + 2] = c.b
+      const ix = i % gW
+      const iz = Math.floor(i / gW)
+      const cls = grid[iz][ix] ?? 0
+
+      // Calculate height based on class
+      // Obstacles and Vegetation are elevated. Sky is a distant background.
+      let h = 0
+      if (cls === 1) h = 0.5 + Math.random() * 0.3 // Vegetation
+      else if (cls === 2) h = 0.8 + Math.random() * 0.5 // Obstacle
+      else if (cls === 3) h = 0.05 // Sky (flat at the back)
+      else h = Math.sin(ix * 0.3) * Math.cos(iz * 0.3) * 0.1 // Driveable (rough sand)
+
+      positions.setZ(i, h)
+
+      const c = DESERT_COLORS[cls] || DESERT_COLORS[0]
+      colorArr[i * 3] = c.r
+      colorArr[i * 3 + 1] = c.g
+      colorArr[i * 3 + 2] = c.b
     }
-    geo.setAttribute("color", new THREE.BufferAttribute(colorArr, 3))
+
     geo.computeVertexNormals()
     return { geometry: geo }
-  }, [terrainGrid])
+  }, [segResult?.terrain_grid])
 
   useFrame((s) => {
-    if (meshRef.current) meshRef.current.rotation.z = Math.sin(s.clock.elapsedTime * 0.1) * 0.02
+    if (meshRef.current && !segResult) {
+      meshRef.current.rotation.z = Math.sin(s.clock.elapsedTime * 0.1) * 0.02
+    }
   })
 
   return (
-    <mesh ref={meshRef} geometry={geometry} rotation={[-Math.PI / 2.5, 0, 0]} position={[0, -0.5, 0]}>
-      <meshStandardMaterial vertexColors side={THREE.DoubleSide} flatShading />
-    </mesh>
+    <group position={[0, -0.5, 0]} rotation={[-Math.PI / 2.2, 0, 0]}>
+      <mesh ref={meshRef} geometry={geometry}>
+        {texture ? (
+          <meshStandardMaterial map={texture} side={THREE.DoubleSide} roughness={0.8} metalness={0.1} />
+        ) : (
+          <meshStandardMaterial vertexColors side={THREE.DoubleSide} flatShading />
+        )}
+      </mesh>
+      <DesertDecorations segResult={segResult} />
+    </group>
   )
 }
 
-/* ── UGV Path ───────────────────────────────────────────────────────────── */
+/* ── Desert Decorations (Cactus, etc.) ────────────────────────────────── */
+function Cactus({ position, scale = 1 }: { position: [number, number, number], scale?: number }) {
+  return (
+    <group position={position} scale={scale}>
+      {/* Main stem */}
+      <mesh position={[0, 0.4, 0]}>
+        <cylinderGeometry args={[0.08, 0.1, 0.8, 8]} />
+        <meshStandardMaterial color="#166534" roughness={0.8} />
+      </mesh>
+      {/* Arm 1 */}
+      <group position={[0, 0.4, 0]} rotation={[0, 0, 0.8]}>
+        <mesh position={[0, 0.2, 0]}>
+          <cylinderGeometry args={[0.06, 0.06, 0.4, 8]} />
+          <meshStandardMaterial color="#166534" />
+        </mesh>
+        <mesh position={[0, 0.4, 0]} rotation={[0, 0, -0.8]}>
+          <cylinderGeometry args={[0.06, 0.06, 0.3, 8]} />
+          <meshStandardMaterial color="#166534" />
+        </mesh>
+      </group>
+      {/* Arm 2 */}
+      <group position={[0, 0.25, 0]} rotation={[0, 0, -0.8]}>
+        <mesh position={[0, 0.15, 0]}>
+          <cylinderGeometry args={[0.05, 0.05, 0.3, 8]} />
+          <meshStandardMaterial color="#166534" />
+        </mesh>
+        <mesh position={[0, 0.3, 0]} rotation={[0, 0, 0.8]}>
+          <cylinderGeometry args={[0.05, 0.05, 0.2, 8]} />
+          <meshStandardMaterial color="#166534" />
+        </mesh>
+      </group>
+    </group>
+  )
+}
+
+function DesertDecorations({ segResult }: { segResult?: SegmentationResult | null }) {
+  const decorations = useMemo(() => {
+    const grid = segResult?.terrain_grid || []
+    if (grid.length === 0) return []
+
+    const items: React.ReactNode[] = []
+    const gH = grid.length
+    const gW = grid[0].length
+
+    // Scatter some cacti in vegetation or driveable areas
+    for (let i = 0; i < 15; i++) {
+      const rx = Math.floor(Math.random() * gW)
+      const rz = Math.floor(Math.random() * gH)
+      const cls = grid[rz][rx]
+
+      if (cls === 1 || (cls === 0 && Math.random() < 0.1)) {
+        // Map grid to terrain coordinates
+        const x = (rx - gW / 2) * 0.4
+        const y = (rz - gH / 2) * 0.4
+        items.push(
+          <Cactus
+            key={i}
+            position={[x, -y, 0]}
+            scale={0.6 + Math.random() * 0.8}
+          />
+        )
+      }
+    }
+    return items
+  }, [segResult?.terrain_grid])
+
+  return <group rotation={[Math.PI / 2, 0, 0]}>{decorations}</group>
+}
+
+/* ── Realistic UGV Model ─────────────────────────────────────────────── */
+function UGVModel({ color = "#06b6d4" }: { color?: string }) {
+  return (
+    <group>
+      {/* Main Chassis */}
+      <mesh position={[0, 0.15, 0]}>
+        <boxGeometry args={[0.5, 0.2, 0.4]} />
+        <meshStandardMaterial color="#334155" metalness={0.8} roughness={0.2} />
+      </mesh>
+      {/* Top Deck (Solar/Sensors) */}
+      <mesh position={[0, 0.26, 0]}>
+        <boxGeometry args={[0.45, 0.04, 0.35]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.2} />
+      </mesh>
+      {/* Wheels */}
+      {[-0.2, 0.2].map(x => [-0.18, 0.18].map(z => (
+        <mesh key={`${x}-${z}`} position={[x, 0.08, z]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.1, 0.1, 0.08, 16]} />
+          <meshStandardMaterial color="#1e293b" />
+        </mesh>
+      )))}
+      {/* Sensor Tower (Lidar) */}
+      <mesh position={[0.15, 0.35, 0]}>
+        <cylinderGeometry args={[0.04, 0.04, 0.15, 12]} />
+        <meshStandardMaterial color="#0f172a" />
+      </mesh>
+      {/* Lidar Head */}
+      <mesh position={[0.15, 0.45, 0]}>
+        <cylinderGeometry args={[0.06, 0.06, 0.05, 12]} />
+        <meshStandardMaterial color="#1e293b" emissive={color} emissiveIntensity={0.5} />
+      </mesh>
+    </group>
+  )
+}
+
 function UGVPath() {
-  const dotRef = useRef<THREE.Mesh>(null)
+  const groupRef = useRef<THREE.Group>(null)
   const curve = useMemo(() => new THREE.CatmullRomCurve3([
-    new THREE.Vector3(-4, 0.4, 2), new THREE.Vector3(-2.5, 0.5, 1),
-    new THREE.Vector3(-1, 0.3, 0.5), new THREE.Vector3(0.5, 0.6, -0.5),
-    new THREE.Vector3(2, 0.4, -1), new THREE.Vector3(3.5, 0.5, -2),
-    new THREE.Vector3(4.5, 0.3, -2.5),
+    new THREE.Vector3(-4.5, 0.4, 2.5), new THREE.Vector3(-2.5, 0.5, 1.2),
+    new THREE.Vector3(-0.5, 0.3, 0.5), new THREE.Vector3(1.5, 0.6, -0.8),
+    new THREE.Vector3(3, 0.4, -1.5), new THREE.Vector3(4.5, 0.5, -3),
+    new THREE.Vector3(5.5, 0.3, -4),
   ]), [])
 
   const lineObj = useMemo(() => {
-    const geom = new THREE.BufferGeometry().setFromPoints(curve.getPoints(60))
-    const mat = new THREE.LineDashedMaterial({ color: "#06b6d4", dashSize: 0.2, gapSize: 0.1 })
+    const geom = new THREE.BufferGeometry().setFromPoints(curve.getPoints(80))
+    const mat = new THREE.LineDashedMaterial({ color: "#06b6d4", dashSize: 0.3, gapSize: 0.15 })
     const l = new THREE.Line(geom, mat)
     l.computeLineDistances()
     return l
   }, [curve])
 
   useFrame((s) => {
-    if (dotRef.current) dotRef.current.position.copy(curve.getPointAt((Math.sin(s.clock.elapsedTime * 0.5) + 1) / 2))
+    if (groupRef.current) {
+      const t = (s.clock.elapsedTime * 0.15) % 1
+      const pos = curve.getPointAt(t)
+      const tangent = curve.getTangentAt(t)
+      groupRef.current.position.copy(pos)
+      groupRef.current.lookAt(pos.clone().add(tangent))
+    }
   })
 
   return (
     <group>
       <primitive object={lineObj} />
-      <mesh ref={dotRef}>
-        <sphereGeometry args={[0.12, 16, 16]} />
-        <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={0.5} />
-      </mesh>
+      <group ref={groupRef}>
+        <UGVModel />
+      </group>
     </group>
   )
 }
@@ -383,9 +520,140 @@ const LEGEND_ARCH = [
   { label: "Seg Output", detail: "4-class mask", color: "#10b981" },
 ]
 
+/* ── Pipeline Animation Video Player ──────────────────────────────────── */
+function PipelineVideo() {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [isPlaying, setIsPlaying] = useState(true)
+  const [progress, setProgress] = useState(0)
+  const [currentHead, setCurrentHead] = useState("")
+
+  const HEAD_NAMES = [
+    "Linear Head", "MLP Head", "ConvNeXt Head",
+    "ConvNeXt Deep Head", "MultiScale Head",
+    "Hybrid Head", "SegFormer Head",
+  ]
+  const HEAD_COLORS_CSS = [
+    "#ff006e", "#fb5607", "#ffbe0b",
+    "#8338ec", "#00f5d4", "#f72585", "#4cc9f0",
+  ]
+
+  useEffect(() => {
+    const v = videoRef.current
+    if (!v) return
+    const onTime = () => {
+      const p = v.currentTime / (v.duration || 1)
+      setProgress(p)
+      const idx = Math.min(Math.floor(p * HEAD_NAMES.length), HEAD_NAMES.length - 1)
+      setCurrentHead(HEAD_NAMES[idx])
+    }
+    v.addEventListener("timeupdate", onTime)
+    return () => v.removeEventListener("timeupdate", onTime)
+  }, [])
+
+  const togglePlay = () => {
+    const v = videoRef.current
+    if (!v) return
+    if (v.paused) { v.play(); setIsPlaying(true) }
+    else { v.pause(); setIsPlaying(false) }
+  }
+
+  const restart = () => {
+    const v = videoRef.current
+    if (!v) return
+    v.currentTime = 0
+    v.play()
+    setIsPlaying(true)
+  }
+
+  const headIdx = Math.min(
+    Math.floor(progress * HEAD_NAMES.length),
+    HEAD_NAMES.length - 1
+  )
+
+  return (
+    <div className="relative h-130 overflow-hidden bg-[#07080f]">
+      {/* Video */}
+      <video
+        ref={videoRef}
+        src="/segheads.mp4"
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="h-full w-full object-contain"
+      />
+
+      {/* Overlay controls */}
+      <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 via-black/40 to-transparent px-4 pb-4 pt-12">
+        {/* Progress bar */}
+        <div className="mb-3 h-1 overflow-hidden rounded-full bg-white/10">
+          <motion.div
+            className="h-full rounded-full"
+            style={{ backgroundColor: HEAD_COLORS_CSS[headIdx] }}
+            animate={{ width: `${progress * 100}%` }}
+            transition={{ duration: 0.2 }}
+          />
+        </div>
+
+        {/* Head indicator dots */}
+        <div className="mb-3 flex items-center justify-center gap-2">
+          {HEAD_NAMES.map((name, i) => (
+            <div key={name} className="flex flex-col items-center gap-1">
+              <div
+                className="h-2 w-2 rounded-full transition-all duration-300"
+                style={{
+                  backgroundColor: HEAD_COLORS_CSS[i],
+                  opacity: i === headIdx ? 1 : 0.3,
+                  transform: i === headIdx ? "scale(1.5)" : "scale(1)",
+                  boxShadow: i === headIdx ? `0 0 8px ${HEAD_COLORS_CSS[i]}` : "none",
+                }}
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Controls row */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={togglePlay}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+            >
+              {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+            </button>
+            <button
+              onClick={restart}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span
+              className="rounded-full px-3 py-1 text-xs font-semibold"
+              style={{
+                backgroundColor: `${HEAD_COLORS_CSS[headIdx]}20`,
+                color: HEAD_COLORS_CSS[headIdx],
+                border: `1px solid ${HEAD_COLORS_CSS[headIdx]}40`,
+              }}
+            >
+              {currentHead || HEAD_NAMES[0]}
+            </span>
+          </div>
+
+          <span className="font-mono text-[10px] text-white/40">
+            {Math.floor(headIdx + 1)}/{HEAD_NAMES.length} heads
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ── Main component ─────────────────────────────────────────────────────── */
 export function Terrain3D({ segResult }: { segResult?: SegmentationResult | null }) {
-  const [activeView, setActiveView] = useState<"architecture" | "terrain">("architecture")
+  const [activeView, setActiveView] = useState<"animation" | "architecture" | "terrain">("animation")
 
   return (
     <section className="relative z-10 mx-auto w-full max-w-6xl px-4 py-16">
@@ -404,6 +672,15 @@ export function Terrain3D({ segResult }: { segResult?: SegmentationResult | null
 
         {/* View toggle */}
         <div className="mb-6 flex justify-center gap-2">
+          <Button
+            size="sm"
+            variant={activeView === "animation" ? "default" : "outline"}
+            className={`gap-2 ${activeView === "animation" ? "bg-primary text-primary-foreground" : "border-border text-foreground"}`}
+            onClick={() => setActiveView("animation")}
+          >
+            <Film className="h-4 w-4" />
+            Segmentation Heads
+          </Button>
           <Button
             size="sm"
             variant={activeView === "architecture" ? "default" : "outline"}
@@ -425,7 +702,7 @@ export function Terrain3D({ segResult }: { segResult?: SegmentationResult | null
         </div>
 
         <div className="grid grid-cols-1 gap-4">
-          {/* 3D Canvas */}
+          {/* 3D Canvas / Video */}
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -434,7 +711,14 @@ export function Terrain3D({ segResult }: { segResult?: SegmentationResult | null
             className="overflow-hidden rounded-xl border border-border bg-card/30"
           >
             <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-              {activeView === "architecture" ? (
+              {activeView === "animation" ? (
+                <>
+                  <Film className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Segmentation Head Architectures · 3D Animated
+                  </span>
+                </>
+              ) : activeView === "architecture" ? (
                 <>
                   <Box className="h-3.5 w-3.5 text-primary" />
                   <span className="text-xs font-medium text-muted-foreground">
@@ -450,51 +734,114 @@ export function Terrain3D({ segResult }: { segResult?: SegmentationResult | null
                 </>
               )}
               <div className="ml-auto flex items-center gap-1">
-                <Eye className="h-3 w-3 text-muted-foreground" />
-                <span className="text-[10px] text-muted-foreground">
-                  Click &amp; drag to orbit
-                </span>
+                {activeView !== "animation" && (
+                  <>
+                    <Eye className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-[10px] text-muted-foreground">
+                      Click &amp; drag to orbit
+                    </span>
+                  </>
+                )}
               </div>
             </div>
 
-            <div className="relative h-[520px]">
-              <Canvas
-                camera={{
-                  position: activeView === "architecture" ? [0, 0, 9] : [5, 4, 5],
-                  fov: 50,
-                }}
-                gl={{ antialias: true, alpha: true }}
-                style={{ background: "transparent" }}
-              >
-                <ambientLight intensity={0.4} />
-                <directionalLight position={[5, 8, 5]} intensity={0.9} />
-                <pointLight position={[-4, 3, 2]} intensity={0.8} color="#06b6d4" />
-                <pointLight position={[4, -2, 2]} intensity={0.6} color="#a855f7" />
-                <pointLight position={[0, 0, 4]} intensity={0.4} color="#10b981" />
+            <AnimatePresence mode="wait">
+              {activeView === "animation" && (
+                <motion.div
+                  key="animation"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <PipelineVideo />
+                </motion.div>
+              )}
 
-                {activeView === "architecture" ? (
-                  <ArchitectureScene />
-                ) : (
-                  <group>
-                    <TerrainMesh terrainGrid={segResult?.terrain_grid} />
+              {activeView === "architecture" && (
+                <motion.div
+                  key="architecture"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="relative h-130"
+                >
+                  <Canvas
+                    camera={{ position: [0, 0, 9], fov: 50 }}
+                    gl={{ antialias: true, alpha: true }}
+                    style={{ background: "transparent" }}
+                  >
+                    <ambientLight intensity={0.4} />
+                    <directionalLight position={[5, 8, 5]} intensity={0.9} />
+                    <pointLight position={[-4, 3, 2]} intensity={0.8} color="#06b6d4" />
+                    <pointLight position={[4, -2, 2]} intensity={0.6} color="#a855f7" />
+                    <pointLight position={[0, 0, 4]} intensity={0.4} color="#10b981" />
+                    <ArchitectureScene />
+                    <OrbitControls enablePan enableZoom enableRotate minDistance={3} maxDistance={16} autoRotate autoRotateSpeed={0.4} />
+                  </Canvas>
+                </motion.div>
+              )}
+
+              {activeView === "terrain" && (
+                <motion.div
+                  key="terrain"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="relative h-130"
+                >
+                  <Canvas
+                    camera={{ position: [5, 4, 5], fov: 50 }}
+                    gl={{ antialias: true, alpha: true }}
+                    style={{ background: "transparent" }}
+                  >
+                    <ambientLight intensity={0.4} />
+                    <directionalLight position={[5, 8, 5]} intensity={0.9} />
+                    <pointLight position={[-4, 3, 2]} intensity={0.8} color="#06b6d4" />
+                    <pointLight position={[4, -2, 2]} intensity={0.6} color="#a855f7" />
+                    <pointLight position={[0, 0, 4]} intensity={0.4} color="#10b981" />
+                    <TerrainMesh segResult={segResult} />
                     <UGVPath />
-                  </group>
-                )}
-
-                <OrbitControls
-                  enablePan
-                  enableZoom
-                  enableRotate
-                  minDistance={3}
-                  maxDistance={16}
-                  autoRotate
-                  autoRotateSpeed={activeView === "architecture" ? 0.4 : 0.6}
-                />
-              </Canvas>
-            </div>
+                    <OrbitControls enablePan enableZoom enableRotate minDistance={3} maxDistance={16} autoRotate autoRotateSpeed={0.6} />
+                  </Canvas>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
 
-          {/* Class legend for terrain */}
+          {/* Animation legend */}
+          {activeView === "animation" && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7"
+            >
+              {[
+                { label: "Linear", color: "#ff006e" },
+                { label: "MLP", color: "#fb5607" },
+                { label: "ConvNeXt", color: "#ffbe0b" },
+                { label: "ConvNeXt Deep", color: "#8338ec" },
+                { label: "MultiScale", color: "#00f5d4" },
+                { label: "Hybrid", color: "#f72585" },
+                { label: "SegFormer", color: "#4cc9f0" },
+              ].map((h) => (
+                <div
+                  key={h.label}
+                  className="flex items-center gap-2 rounded-lg border border-border bg-card/40 px-3 py-2"
+                >
+                  <div
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: h.color }}
+                  />
+                  <span className="text-[11px] font-medium text-foreground">{h.label}</span>
+                </div>
+              ))}
+            </motion.div>
+          )}
+
+          {/* Terrain legend */}
           {activeView === "terrain" && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -502,12 +849,12 @@ export function Terrain3D({ segResult }: { segResult?: SegmentationResult | null
               className="flex flex-wrap justify-center gap-3"
             >
               {CLASS_NAMES.map((name, i) => {
-                const c = CLASS_COLORS[i]
+                const c = DESERT_COLORS[i]
                 const hex = `#${new THREE.Color(c.r, c.g, c.b).getHexString()}`
                 return (
                   <div key={name} className="flex items-center gap-1.5">
                     <div className="h-3 w-3 rounded-sm" style={{ backgroundColor: hex }} />
-                    <span className="text-xs text-muted-foreground">{name}</span>
+                    <span className="text-sm text-muted-foreground">{name}</span>
                   </div>
                 )
               })}

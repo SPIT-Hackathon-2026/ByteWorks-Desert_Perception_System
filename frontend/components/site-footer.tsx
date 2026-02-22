@@ -17,17 +17,20 @@ export function SiteFooter() {
           segmentation. Built with Next.js, PyTorch, and FastAPI.
         </p>
         <div className="flex items-center gap-6">
-          {["Architecture", "API Docs", "Dataset", "Research"].map(
-            (link) => (
-              <a
-                key={link}
-                href="#"
-                className="text-xs text-muted-foreground transition-colors hover:text-primary"
-              >
-                {link}
-              </a>
-            )
-          )}
+          {[
+            { label: "Pipeline", href: "#pipeline" },
+            { label: "Analysis", href: "#analysis" },
+            { label: "Metrics", href: "#metrics" },
+            { label: "Architecture", href: "#architecture" },
+          ].map((link) => (
+            <a
+              key={link.label}
+              href={link.href}
+              className="text-xs text-muted-foreground transition-colors hover:text-primary"
+            >
+              {link.label}
+            </a>
+          ))}
         </div>
         <p className="text-xs text-muted-foreground/60">
           Off-Road Perception System v3.0 — 4-Class Segmentation

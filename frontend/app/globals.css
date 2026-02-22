@@ -123,3 +123,31 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ── Professional polish ─────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+::selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
