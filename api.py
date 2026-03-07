@@ -213,14 +213,31 @@ def _compute_risk(class_distribution: list, mask: np.ndarray) -> dict:
     """
     # ── 1. Extract class percentages ──────────────────────────────────────
     pct = {c["name"]: c["percentage"] / 100 for c in class_distribution}
-    obstacle_pct    = pct.get("Obstacle", 0.0)
-    driveable_pct   = pct.get("Driveable", 0.0)
-    sky_pct         = pct.get("Sky", 0.0)
-    rock_pct        = pct.get("Rock", pct.get("Rough", 0.0))
+
+    # Aggregate 10-class semantics into navigation buckets
+    # Go      : Dry Grass, Flowers, Landscape
+    # Caution : Dry Bushes, Ground Clutter, Rocks
+    # No-Go   : Trees, Lush Bushes, Logs
+    driveable_pct = (
+        pct.get("Dry Grass", 0.0) +
+        pct.get("Flowers", 0.0) +
+        pct.get("Landscape", 0.0)
+    )
+    caution_pct = (
+        pct.get("Dry Bushes", 0.0) +
+        pct.get("Ground Clutter", 0.0) +
+        pct.get("Rocks", 0.0)
+    )
+    obstacle_pct = (
+        pct.get("Trees", 0.0) +
+        pct.get("Lush Bushes", 0.0) +
+        pct.get("Logs", 0.0)
+    )
+    sky_pct = pct.get("Sky", 0.0)
 
     # ── 2. Derive proxy sensor features ──────────────────────────────────
     # ir_ratio: fraction of "reflective" area (obstacles + rocks reflect IR)
-    ir_ratio      = min(obstacle_pct + rock_pct * 0.5, 1.0)
+    ir_ratio      = min(obstacle_pct + caution_pct * 0.5, 1.0)
     # trans_rate: texture variation proxy — high obstacles = high transitions
     trans_rate    = min(obstacle_pct * 1.5, 1.0)
     variance      = ir_ratio * (1 - ir_ratio)            # Bernoulli variance
@@ -257,9 +274,24 @@ def _compute_risk(class_distribution: list, mask: np.ndarray) -> dict:
         uncertainty        = max(1.0 - visibility, 0.0)
 
     # ── 5. Generate Terrain Grid for 3D Visualizer ────────────────────────
-    # Downsample mask to e.g. 34x19 for the frontend 3D mesh
+    # Convert 10 semantic classes → 4 navigation codes:
+    # 0 = Driveable (Go), 1 = Caution, 2 = Obstacle, 3 = Sky
+    nav_map = np.array([
+        2,  # Trees          → Obstacle
+        2,  # Lush Bushes    → Obstacle
+        0,  # Dry Grass      → Driveable
+        1,  # Dry Bushes     → Caution
+        1,  # Ground Clutter → Caution
+        0,  # Flowers        → Driveable
+        2,  # Logs           → Obstacle
+        1,  # Rocks          → Caution
+        0,  # Landscape      → Driveable
+        3,  # Sky            → Sky
+    ], dtype=np.uint8)
+    nav_mask = nav_map[np.clip(mask.astype(np.int64), 0, len(nav_map) - 1)]
+
     grid_w, grid_h = 34, 19
-    small_mask = cv2.resize(mask, (grid_w, grid_h), interpolation=cv2.INTER_NEAREST)
+    small_mask = cv2.resize(nav_mask, (grid_w, grid_h), interpolation=cv2.INTER_NEAREST)
     terrain_grid = small_mask.tolist()
 
     # ── 6. Compute Final Aggregate Hazards ───────────────────────────────
@@ -395,18 +427,10 @@ async def segment(file: UploadFile = File(...)):
 
         class_distribution.sort(key=lambda x: x["percentage"], reverse=True)
 
-        # Terrain grid for 3D (downsampled)
-        ds = 8
-        small_h, small_w = IMG_SIZE // ds, IMG_SIZE // ds
-        small_mask = cv2.resize(
-            final.astype(np.uint8),
-            (small_w, small_h),
-            interpolation=cv2.INTER_NEAREST,
-        )
-        terrain_grid = small_mask.tolist()
-
         # ── Risk assessment (UGV ensemble + segmentation) ────────────────────
+        # Also computes the navigation-aware terrain grid for the 3D visualiser
         risk_assessment = _compute_risk(class_distribution, final)
+        terrain_grid = risk_assessment.get("terrain_grid")
 
         return JSONResponse({
             "original_b64": _ndarray_to_b64png(img_resized),

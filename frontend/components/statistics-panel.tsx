@@ -3,22 +3,23 @@
 import { motion } from "framer-motion"
 import { useMemo } from "react"
 import {
-  PieChart,
-  Pie,
-  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
   ResponsiveContainer,
   LineChart,
   Line,
+  Tooltip,
+  BarChart,
+  Bar,
+  Cell,
   RadarChart,
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
   Radar,
 } from "recharts"
+import { InteractivePieChart } from "@/components/interactive-pie-chart"
 import { Activity, Clock, Target, Zap } from "lucide-react"
 import type { SegmentationResult } from "@/lib/api"
 
@@ -55,6 +56,13 @@ const baseRadarData = [
 interface StatisticsPanelProps {
   isComplete: boolean
   segResult?: SegmentationResult | null
+}
+
+const IOU_COLORS: Record<string, string> = {
+  Driveable: "#10b981",
+  Vegetation: "#22d3ee",
+  Obstacle: "#f97316",
+  Sky: "#38bdf8",
 }
 
 export function StatisticsPanel({ isComplete, segResult }: StatisticsPanelProps) {
@@ -139,6 +147,12 @@ export function StatisticsPanel({ isComplete, segResult }: StatisticsPanelProps)
 
   const metrics = segResult?.risk_assessment?.metrics
 
+  const barIoUData = liveIouData.map((cls) => ({
+    name: cls.name,
+    value: +(cls.iou * 100).toFixed(1),
+    fill: IOU_COLORS[cls.name] ?? "#06b6d4",
+  }))
+
   return (
     <section id="metrics" className="relative z-10 mx-auto w-full max-w-6xl px-4 py-16">
       <motion.div
@@ -215,42 +229,11 @@ export function StatisticsPanel({ isComplete, segResult }: StatisticsPanelProps)
         {/* Charts grid */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {/* Class distribution */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="rounded-xl border border-border bg-card/50 p-5 backdrop-blur-sm"
-          >
-            <h3 className="mb-4 text-sm font-semibold text-foreground">
-              Class Distribution (%)
-            </h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={liveClassData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {liveClassData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#0f1724",
-                    border: "1px solid #1e293b",
-                    borderRadius: 8,
-                    color: "#e2e8f0",
-                    fontSize: 12,
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </motion.div>
+          <InteractivePieChart
+            data={liveClassData}
+            title="Class Distribution (%)"
+            showPercentages
+          />
 
           {/* Loss curve */}
           <motion.div
@@ -313,7 +296,7 @@ export function StatisticsPanel({ isComplete, segResult }: StatisticsPanelProps)
             </ResponsiveContainer>
           </motion.div>
 
-          {/* Per-class IoU */}
+          {/* Per-class IoU (bar chart) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -323,28 +306,50 @@ export function StatisticsPanel({ isComplete, segResult }: StatisticsPanelProps)
             <h3 className="mb-4 text-sm font-semibold text-foreground">
               Per-Class IoU
             </h3>
-            <div className="space-y-4">
-              {liveIouData.map((cls) => (
-                <div key={cls.name}>
-                  <div className="mb-1 flex items-center justify-between">
-                    <span className="text-xs font-medium text-muted-foreground">
-                      {cls.name}
-                    </span>
-                    <span className="font-mono text-xs text-foreground">
-                      {(cls.iou * 100).toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-secondary">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${cls.iou * 100}%` }}
-                      transition={{ duration: 1, delay: 0.5 }}
-                      className="h-full rounded-full bg-primary"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart
+                data={barIoUData}
+                layout="vertical"
+                margin={{ top: 8, right: 16, bottom: 8, left: 40 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#1e293b"
+                  horizontal={false}
+                />
+                <XAxis
+                  type="number"
+                  domain={[0, 100]}
+                  tick={{ fill: "#94a3b8", fontSize: 11 }}
+                  axisLine={{ stroke: "#1e293b" }}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  tick={{ fill: "#94a3b8", fontSize: 11 }}
+                  axisLine={{ stroke: "#1e293b" }}
+                  width={80}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#0f1724",
+                    border: "1px solid #1e293b",
+                    borderRadius: 8,
+                    color: "#e2e8f0",
+                    fontSize: 12,
+                  }}
+                  formatter={(value: any) => [
+                    `${typeof value === "number" ? value.toFixed(1) : value}%`,
+                    "IoU",
+                  ]}
+                />
+                <Bar dataKey="value" radius={4}>
+                  {barIoUData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </motion.div>
 
           {/* Radar chart */}

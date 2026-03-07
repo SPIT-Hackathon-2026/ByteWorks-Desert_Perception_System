@@ -68,9 +68,9 @@ DICE_SMOOTH = 1.0
 LOSS_WEIGHTS = {"focal": 1.0, "dice": 1.0}  # combined loss weighting
 
 # ============================================================================
-# Class definitions — 4 super-classes for UGV navigation (Driveable, Vegetation, Obstacle, Sky)
+# Class definitions — full 10-class desert semantics from the hackathon
 # ============================================================================
-# Raw mask pixel value → original 10-class id
+# Raw mask pixel value → dense 0–9 class id
 VALUE_MAP = {
     100: 0,      # Trees
     200: 1,      # Lush Bushes
@@ -84,39 +84,36 @@ VALUE_MAP = {
     10000: 9,    # Sky
 }
 
-# 10-class → 4 super-class mapping
-#   0 = Driveable    (Landscape — open ground the UGV can traverse)
-#   1 = Vegetation   (Trees, Lush Bushes, Dry Grass, Dry Bushes, Ground Clutter, Flowers)
-#   2 = Obstacle     (Logs, Rocks — hard obstacles, must avoid)
-#   3 = Sky
-CLASS_REMAP = {
-    0: 1,   # Trees         → Vegetation
-    1: 1,   # Lush Bushes   → Vegetation
-    2: 1,   # Dry Grass     → Vegetation
-    3: 1,   # Dry Bushes    → Vegetation
-    4: 2,   # Ground Clutter→ Obstacle
-    5: 1,   # Flowers       → Vegetation
-    6: 2,   # Logs          → Obstacle
-    7: 2,   # Rocks         → Obstacle
-    8: 0,   # Landscape     → Driveable
-    9: 3,   # Sky           → Sky
-}
+# For training/inference we keep all 10 classes separate (identity remap)
+CLASS_REMAP = {i: i for i in range(10)}
 
-NUM_CLASSES = 4
+NUM_CLASSES = 10
 
 CLASS_NAMES = [
-    "Driveable",    # 0
-    "Vegetation",   # 1
-    "Obstacle",     # 2
-    "Sky",          # 3
+    "Trees",          # 0
+    "Lush Bushes",    # 1
+    "Dry Grass",      # 2
+    "Dry Bushes",     # 3
+    "Ground Clutter", # 4
+    "Flowers",        # 5
+    "Logs",           # 6
+    "Rocks",          # 7
+    "Landscape",      # 8
+    "Sky",            # 9
 ]
 
-# RGB colour palette for visualisation
+# RGB colour palette for visualisation (matches test_segmentation.py)
 COLOR_PALETTE = np.array([
-    [0, 200, 0],      # Driveable  – green
-    [200, 0, 200],    # Vegetation – magenta/purple
-    [255, 50, 50],    # Obstacle   – red
-    [135, 206, 235],  # Sky        – sky blue
+    [34, 139, 34],   # Trees - forest green
+    [0, 255, 0],     # Lush Bushes - lime
+    [210, 180, 140], # Dry Grass - tan
+    [139, 90, 43],   # Dry Bushes - brown
+    [128, 128, 0],   # Ground Clutter - olive
+    [255, 192, 203], # Flowers - pink
+    [139, 69, 19],   # Logs - saddle brown
+    [128, 128, 128], # Rocks - gray
+    [160, 82, 45],   # Landscape - sienna
+    [135, 206, 235], # Sky - sky blue
 ], dtype=np.uint8)
 
 # ImageNet normalisation

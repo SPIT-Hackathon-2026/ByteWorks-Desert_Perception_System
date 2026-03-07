@@ -5,11 +5,12 @@ import { NeuralBackground } from "@/components/neural-background"
 import { HeroSection } from "@/components/hero-section"
 import { UploadSection } from "@/components/upload-section"
 import { ProcessingPipeline } from "@/components/processing-pipeline"
+import { ProcessingProgressBar } from "@/components/processing-progress-bar"
 import { OutputDashboard } from "@/components/output-dashboard"
 import { StatisticsPanel } from "@/components/statistics-panel"
 import { RiskGauge } from "@/components/risk-gauge"
 import { ModelTransparency } from "@/components/model-transparency"
-import { Terrain3D } from "@/components/terrain-3d"
+import { UnifiedDashboard } from "@/components/unified-dashboard"
 import { SiteFooter } from "@/components/site-footer"
 import { segmentImage, type SegmentationResult } from "@/lib/api"
 
@@ -53,9 +54,12 @@ export default function Home() {
           setIsComplete(true)
         }, 800)
       }, timeRemaining)
-    } catch (err: any) {
-      console.error("Segmentation API error:", err)
-      setApiError(err.message || "Backend not available")
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Backend not available"
+      // Use warn instead of error so Next.js dev overlay doesn't hijack the UI
+      console.warn("Segmentation API error:", message)
+      setApiError(message)
       setCurrentStep(7)
       setIsProcessing(false)
       setIsComplete(true)
@@ -65,6 +69,7 @@ export default function Home() {
   return (
     <main className="relative min-h-screen bg-background">
       <NeuralBackground isProcessing={isProcessing} />
+      <ProcessingProgressBar isProcessing={isProcessing} currentStep={currentStep} />
 
       <HeroSection onUploadClick={handleUploadClick} />
 
@@ -102,13 +107,13 @@ export default function Home() {
         segResult={segResult}
       />
 
+      <UnifiedDashboard isComplete={isComplete} segResult={segResult} />
+
       <StatisticsPanel isComplete={isComplete} segResult={segResult} />
 
       <RiskGauge isComplete={isComplete} segResult={segResult} />
 
       <ModelTransparency />
-
-      <Terrain3D segResult={segResult} />
 
       <SiteFooter />
     </main>
